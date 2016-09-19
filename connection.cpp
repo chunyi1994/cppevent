@@ -8,7 +8,7 @@ const int DEFAULT_MAX_BUFFER_SIZE = 2048;
 
 Connection::Connection(EventLoop *loop, int fd) :
     connfd_(fd),
-    event_(fd,  EPOLLIN | EPOLLET | EPOLLOUT | EPOLLHUP),
+    event_(fd,  EPOLLIN | EPOLLET | EPOLLOUT | EPOLLHUP | EPOLLRDHUP),
     connecting_(false),
     bufferMaxSize_(DEFAULT_MAX_BUFFER_SIZE),
     bufferSize_(0)
@@ -97,7 +97,6 @@ void Connection::handleRead(){
     char buf[1024];
     while(1){
         n = ::read(connfd_.fd(), buf, 1023);
-        //std::cout<<"n"<<n<<std::endl;
         buf[n] = '\0';
         if(n < 0){
             n = 0;
@@ -111,7 +110,6 @@ void Connection::handleRead(){
             break;
 
         }else if(n == 0 && errno != EINTR){
-            std::cout<<errno<<std::endl;
             //如果errno == EINTR 则说明recv函数是由于程序接收到信号后返回的，
             //socket连接还是正常的，不应close掉socket连接。
             closeFlag = true;
@@ -126,9 +124,9 @@ void Connection::handleRead(){
         messageCallback_(shared_from_this());
     }
 
-    if(closeFlag){
-       handleClose();
-    }
+//    if(closeFlag){
+//       handleClose();
+//    }
 
 }
 
