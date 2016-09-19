@@ -12,10 +12,10 @@
 #include <fstream>
 using namespace std;
 using namespace cppevent;
- string content;
+string content;
 
- //还没写完,
- //写的是一个翻墙的小程序,测试失败
+//还没写完,
+//写的是一个翻墙的小程序,测试失败
 class ProxyServer{
 public:
     ProxyServer(EventLoop* loop, size_t port) : loop_(loop), server_(loop, port)
@@ -27,14 +27,14 @@ public:
     }
     void start(){
         string html;
-                html = html +
+        html = html +
                 "<html>"+
                 "<head><title>200 good Request</title></head>"+
                 "<body bgcolor=\"white\">"+
                 "<center><h1>666 Bad Request</h1></center>"+
                 "<hr><center>squid/3..3</center>"+
                 "</body>"+
-               "</html>";
+                "</html>";
 
         content = content + "HTTP/1.1 200 ok\r\n"+
                 "Server: squid/3.4.3\r\n"+
@@ -66,7 +66,6 @@ private:
             log("Connection Close");
 
         }
-
     }
 
     EventLoop* loop_;

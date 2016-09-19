@@ -18,14 +18,19 @@ public:
     void addHeaders(const std::string& key,const  std::string& value);
     void setStatusLine(const std::string& version, int statusCode,const std::string& status);
     void setRequestLine(const std::string& method, const std::string& path, const std::string& version);
-    std::string toString();    //这个操作比较费时,每次调用都会重新解析一次
-    std::string method();
-    std::string path();
-    std::string version();
-    int statusCode();
+    std::string toString() const;    //这个操作比较费时,每次调用都会重新解析一次
+    std::string method() const;
+    std::string path() const;
+    std::string version() const;
+    int statusCode() const;
     void parse(const std::string &content, int type);
+
     HeadersMap::iterator begin();
     HeadersMap::iterator end();
+
+    HeadersMap::const_iterator begin() const;
+    HeadersMap::const_iterator end() const;
+
     HeadersMap::const_iterator cbegin() const;
     HeadersMap::const_iterator cend() const;
 

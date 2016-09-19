@@ -16,47 +16,55 @@
 #include "http_message.h"
 #include "utils.h"
 #include "httpclient.h"
+#include "timer.h"
 #include <fstream>
 using namespace std;
 using namespace cppevent;
 
 
-int main(){
-    EventLoop loop;
-    HttpClient client(&loop);
-    client.get("http://www.qq.com", 80);
-    loop.loop();
-    return 0;
-}
+//int main(){
+//    EventLoop loop;
+//    HttpClient client(&loop);
+//    client.get("http://www.qq.com", 80);
+//    loop.loop();
+//    return 0;
+//}
 
 //-----------------------------------------------------------------------------------------------------------------
 
 //tcp server demo
-//void connCallback(const ConnectionPtr& conn){
 
-//}
-//int main(){
-//    EventLoop loop;
-//    TcpServer server(&loop, 24444);
-//    server.setMessageCallback([](const ConnectionPtr& conn){
-//                string msg = conn->readAll();
-//                cout<<msg<<endl;
-//    });
+int main(){
+    EventLoop loop;
+    TcpServer server(&loop, 24444);
+    Time time(3);
+    loop.runAfter(time, [](){
+        log("run After 3");
+    });
 
-//    server.setConnectionCallback([](const ConnectionPtr& conn){
-//        if(conn->connecting()){
-//            log("New Connection");
+    loop.runEvery(time, [](){
+        log("run every 3");
+    });
 
-//        }else{
-//            log("Connection Close");
-//        }
-//    });
+    server.setMessageCallback([](const ConnectionPtr& conn){
+                string msg = conn->readAll();
+                cout<<msg<<endl;
+    });
 
-//    server.start();
-//    loop.loop();
-//    cout<<"hello world"<<endl;
-//    return 0;
-//}
+    server.setConnectionCallback([](const ConnectionPtr& conn){
+        if(conn->connecting()){
+            log("New Connection");
+
+        }else{
+            log("Connection Close");
+        }
+    });
+
+    server.start();
+    loop.loop();
+    cout<<"hello world"<<endl;
+    return 0;
+}
 
 
 

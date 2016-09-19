@@ -40,7 +40,7 @@ void HttpMessage::setRequestLine(const std::string &method, const std::string &p
     version_ = version;
 }
 
-std::string HttpMessage::toString()
+std::string HttpMessage::toString() const
 {
     std::string line;
     std::string msg;
@@ -60,22 +60,22 @@ std::string HttpMessage::toString()
     return msg;
 }
 
-std::string HttpMessage::method()
+std::string HttpMessage::method() const
 {
     return method_;
 }
 
-std::string HttpMessage::path()
+std::string HttpMessage::path() const
 {
     return path_;
 }
 
-std::string HttpMessage::version()
+std::string HttpMessage::version() const
 {
     return version_;
 }
 
-int HttpMessage::statusCode()
+int HttpMessage::statusCode() const
 {
     return statusCode_;
 }
@@ -142,6 +142,16 @@ HttpMessage::HeadersMap::iterator HttpMessage::begin()
 HttpMessage::HeadersMap::iterator HttpMessage::end()
 {
     return headersMap_.end();
+}
+
+HttpMessage::HeadersMap::const_iterator HttpMessage::begin() const
+{
+    return headersMap_.cbegin();
+}
+
+HttpMessage::HeadersMap::const_iterator HttpMessage::end() const
+{
+    return headersMap_.cend();
 }
 
 HttpMessage::HeadersMap::const_iterator HttpMessage::cbegin() const

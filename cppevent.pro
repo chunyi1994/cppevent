@@ -14,7 +14,9 @@ SOURCES += main.cpp \
     buffer.cpp \
     tcpclient.cpp \
     http_message.cpp \
-    httpclient.cpp
+    httpclient.cpp \
+    time_event.cpp \
+    timer.cpp
 
 HEADERS += \
     poller.h \
@@ -31,5 +33,8 @@ HEADERS += \
     chatroom.h \
     proxy_test.h \
     http_message.h \
-    httpclient.h
+    httpclient.h \
+    time_event.h \
+    timer.h \
+    time_event_compare.h
 

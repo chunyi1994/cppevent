@@ -16,8 +16,9 @@ void HttpClient::addHeader(const std::string &name, const std::string &value)
     message_[name] = value;
 }
 
-void HttpClient::setMessageCallback(const MessageCallback &cb)
+void HttpClient::setMessageCallback(const HttpMessageCallback &cb)
 {
+    httpMessageCallback_ = cb;
     //还没想好callback怎么写
 }
 
@@ -111,8 +112,7 @@ void HttpClient::handleMessage(const ConnectionPtr &conn)
 
     HttpMessage msg;
     msg.parse(msgStr, TYPE_HTTP_RESPONSE);
-
-    //messageCallback( msg, conn );
+    //httpMessageCallback_(conn, msg);
 }
 
 void parseUrl(const std::string& url, std::string& host, std::string& path)
