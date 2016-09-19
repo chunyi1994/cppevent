@@ -46,8 +46,7 @@ void Event::handleEvent(){
 //    }
 
     if(revents_ & EPOLLRDHUP){
-        //当对方close套接字的时候,理论上来说会调用这里
-        //但是实际测试发现不会调用这里
+        //当对方close套接字的时候,会调用这里
         closeCallback_();
     }
 
