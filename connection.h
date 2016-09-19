@@ -33,6 +33,7 @@ public:
     size_t readSize() const;
     void send(const std::string& msg);
     void setConnectionStatus(bool);
+    void shutdown();
 
 private:
     void handleClose();
@@ -44,8 +45,8 @@ private:
     Event event_;
     bool connecting_;
     Buffer buffer_;
-    size_t bufferMaxSize_;
-    size_t bufferSize_;
+    size_t bufferMaxSize_;  //暂时没用
+    size_t bufferSize_;          //暂时没用
     MessageCallback messageCallback_;
     MessageCallback writeCallback_;
     ConnectionCallback connectionCallback_;
