@@ -84,6 +84,11 @@ void Connection::setConnectionStatus(bool isConnecting){
     connecting_ = isConnecting;
 }
 
+void Connection::shutdown()
+{
+    handleClose();
+}
+
 void Connection::handleClose(){
     connecting_ = false;
     if(connectionCallback_){
@@ -112,6 +117,9 @@ void Connection::handleRead(){
         }else if(n == 0 && errno != EINTR){
             //如果errno == EINTR 则说明recv函数是由于程序接收到信号后返回的，
             //socket连接还是正常的，不应close掉socket连接。
+            //一般来说,read到0算是对方关闭了套接字的写端,
+            //但是正确使用epoll的话,有更优雅的回调方式
+            //所以这里即使读到了0,也不close,而是等epoll发出EPOLLRDHUP再调用closecallback
             closeFlag = true;
             break;
         }
