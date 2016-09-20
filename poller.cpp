@@ -16,16 +16,19 @@ Poller::Poller() :
 
 Poller::~Poller(){}
 
-void Poller::addEvent(Event *event){
+void Poller::addEvent(Event *event)
+{
     assert(event != NULL);
     add(event->fd(), event->events());
     eventsMap_[event->fd()] = event;
 }
 
 int Poller::wait(vector<Event*> *activeEvents){
-    int maxNumEvents = ::epoll_wait(epSock_.fd(), &*events_.begin(), MAX_EPOLL_NUM, 500); //500应该是毫秒
+    int maxNumEvents = ::epoll_wait(epSock_.fd(),
+                                    &*events_.begin(), MAX_EPOLL_NUM, 500); //500应该是毫秒
     std::for_each(events_.begin(), events_.begin() + maxNumEvents,
-                  [=](epoll_event event){
+                  [=](epoll_event event)
+    {
         auto ch = eventsMap_.find(event.data.fd);
         assert(ch != eventsMap_.end());
         Event *pevent = ch->second;
@@ -37,26 +40,31 @@ int Poller::wait(vector<Event*> *activeEvents){
     return 0;
 }
 
-void Poller::ctl(int fd, uint32_t events, int op){
+void Poller::ctl(int fd, uint32_t events, int op)
+{
     struct epoll_event ev;
     ev.data.fd = fd;
     ev.events = events;
     ::epoll_ctl(epSock_.fd(), op, fd, &ev);
 }
 
-void Poller::add(int fd, uint32_t events){
+void Poller::add(int fd, uint32_t events)
+{
     ctl(fd, events, EPOLL_CTL_ADD);
 }
 
-void Poller::mod(int fd, uint32_t events){
+void Poller::mod(int fd, uint32_t events)
+{
     ctl(fd, events, EPOLL_CTL_MOD);
 }
 
-void Poller::del(int fd, uint32_t events){
+void Poller::del(int fd, uint32_t events)
+{
     ctl(fd, events, EPOLL_CTL_DEL);
 }
 
-struct epoll_event& Poller::getEvent(size_t i){
+struct epoll_event& Poller::getEvent(size_t i)
+{
     assert(i < MAX_EPOLL_NUM);
     return events_[i];
 }

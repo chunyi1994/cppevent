@@ -1,10 +1,11 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
+#include <memory>
+
 #include "socket.h"
 #include "event.h"
 #include "buffer.h"
-
-#include <memory>
+#include "tcp_address.h"
 //说明: Connection持有RAII的Socket类, 在析构Connection时,也会close文件描述符
 namespace cppevent{
 
@@ -34,6 +35,8 @@ public:
     void send(const std::string& msg);
     void setConnectionStatus(bool);
     void shutdown();
+    const TcpAddress& address() const;
+    void setAddress(const TcpAddress& addr);
 
 private:
     void handleClose();
@@ -45,8 +48,8 @@ private:
     Event event_;
     bool connecting_;
     Buffer buffer_;
-    size_t bufferMaxSize_;  //暂时没用
-    size_t bufferSize_;          //暂时没用
+    TcpAddress peer_;
+    size_t bufferMaxSize_;
     MessageCallback messageCallback_;
     MessageCallback writeCallback_;
     ConnectionCallback connectionCallback_;

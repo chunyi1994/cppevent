@@ -8,7 +8,8 @@
 #include <utility>
 #include <iostream>
 namespace cppevent{
-class Buffer{
+class Buffer
+{
 public:
     Buffer();
     size_t size() const;

@@ -10,11 +10,7 @@ class TimeEventCompare
 public:
     bool operator()(const TimeEventPtr& timeEvent1, const TimeEventPtr timeEvent2)
     {
-        if(timeEvent1->getTime() > timeEvent2->getTime())
-        {
-            return true;
-        }
-        return false;
+        return timeEvent1->getTime() > timeEvent2->getTime();
     }
 };
 }

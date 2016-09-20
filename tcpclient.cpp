@@ -18,11 +18,13 @@ using std::endl;
 
 namespace cppevent{
 
-TcpClient::TcpClient(EventLoop *loop) : loop_(loop){
+TcpClient::TcpClient(EventLoop *loop) : loop_(loop)
+{
 
 }
 
-int tcpInit(const string &ip, int port){
+int tcpInit(const string &ip, int port)
+{
     int sockfd, status, save_errno;
     struct sockaddr_in server_addr;
     memset(&server_addr, 0, sizeof(server_addr) );
@@ -53,13 +55,16 @@ int tcpInit(const string &ip, int port){
     return sockfd;
 }
 
-void TcpClient::connect(const std::string &ip, int port){
+void TcpClient::connect(const std::string &ip, int port)
+{
    int sockfd =  tcpInit(ip,port);
    if(sockfd < 0){
        log("connect err:");
        return;
    }
    setnonblocking(sockfd);
+   TcpAddress tcpAddr(ip, port);
+   connPtr_->setAddress(tcpAddr);
    connPtr_ = std::make_shared<Connection>(loop_, sockfd);
    connPtr_->setMessageCallback(messageCallback_);
 
@@ -79,7 +84,8 @@ void TcpClient::setConnectionCallback(const ConnectionCallback &cb)
 
 }
 
-void TcpClient::setMessageCallback(const MessageCallback &cb){
+void TcpClient::setMessageCallback(const MessageCallback &cb)
+{
     messageCallback_ = cb;
 }
 

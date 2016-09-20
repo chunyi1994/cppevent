@@ -2,13 +2,18 @@
 #define POLLER_H
 #include <sys/epoll.h>
 #include <vector>
-#include "socket.h"
 #include <map>
+
+#include "socket.h"
+
 using std::vector;
 using std::map;
 namespace cppevent{
+
 class Event;
-class Poller{
+
+class Poller
+{
 public:
     Poller();
     ~Poller();

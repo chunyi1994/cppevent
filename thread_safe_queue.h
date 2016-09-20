@@ -6,10 +6,13 @@
 #include <queue>
 #include <memory>
 namespace cppevent{
+
 template<class T>
-class ThreadSafeQueue{
+class ThreadSafeQueue
+{
     typedef T value_type;
     typedef std::shared_ptr<value_type> value_ptr;
+
 public:
     ThreadSafeQueue():queue_(), mutex_(), cond_(){}
 

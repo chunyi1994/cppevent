@@ -8,10 +8,10 @@ const int DEFAULT_MAX_BUFFER_SIZE = 2048;
 
 Connection::Connection(EventLoop *loop, int fd) :
     connfd_(fd),
-    event_(fd,  EPOLLIN | EPOLLET | EPOLLOUT | EPOLLHUP | EPOLLRDHUP),
+    event_(fd,  EPOLLIN | EPOLLHUP | EPOLLRDHUP),
     connecting_(false),
-    bufferMaxSize_(DEFAULT_MAX_BUFFER_SIZE),
-    bufferSize_(0)
+    peer_(),
+    bufferMaxSize_(DEFAULT_MAX_BUFFER_SIZE)
 {
     loop->addEvent(&event_);
     event_.setReadCallback(std::bind(&Connection::handleRead, this));
@@ -20,15 +20,18 @@ Connection::Connection(EventLoop *loop, int fd) :
     event_.setWriteCallback(std::bind(&Connection::handleWrite, this));
 }
 
-Connection::~Connection(){
+Connection::~Connection()
+{
     //log("~Connection");
 }
 
-void Connection::setMessageCallback(const MessageCallback &cb){
+void Connection::setMessageCallback(const MessageCallback &cb)
+{
     messageCallback_ = cb;
 }
 
-void Connection::setConnectionCallback(const ConnectionCallback &cb){
+void Connection::setConnectionCallback(const ConnectionCallback &cb)
+{
     connectionCallback_ = cb;
 }
 
@@ -37,35 +40,43 @@ void Connection::setWriteCallback(const MessageCallback &cb)
     writeCallback_ = cb;
 }
 
-int Connection::fd() const{
+int Connection::fd() const
+{
     return connfd_.fd();
 }
 
-bool Connection::connecting() const{
+bool Connection::connecting() const
+{
     return connecting_;
 }
 
-std::string Connection::read(size_t len){
+std::string Connection::read(size_t len)
+{
     return buffer_.read(len);
 }
 
-std::string Connection::readAll(){
+std::string Connection::readAll()
+{
     return buffer_.read(buffer_.size());
 }
 
-bool Connection::readLine(std::string &line){
+bool Connection::readLine(std::string &line)
+{
     return buffer_.readLine(line);
 }
 
-bool Connection::readLine(std::string &str, char br){
+bool Connection::readLine(std::string &str, char br)
+{
     return buffer_.readLine(str, br);
 }
 
-size_t Connection::readSize() const{
+size_t Connection::readSize() const
+{
     return buffer_.size();
 }
 
-void Connection::send(const std::string &msg){
+void Connection::send(const std::string &msg)
+{
     int wirten = 0;
     int n = 0;
     while(wirten < msg.length()){
@@ -80,7 +91,8 @@ void Connection::send(const std::string &msg){
     }
 }
 
-void Connection::setConnectionStatus(bool isConnecting){
+void Connection::setConnectionStatus(bool isConnecting)
+{
     connecting_ = isConnecting;
 }
 
@@ -89,28 +101,44 @@ void Connection::shutdown()
     handleClose();
 }
 
-void Connection::handleClose(){
+void Connection::setAddress(const TcpAddress &addr)
+{
+    peer_ = addr;
+}
+
+const TcpAddress &Connection::address() const
+{
+    return peer_;
+}
+
+void Connection::handleClose()
+{
     connecting_ = false;
     if(connectionCallback_){
         connectionCallback_(shared_from_this());
     }
 }
 
-void Connection::handleRead(){
-    bool closeFlag = false;
+void Connection::handleRead()
+{
     int n = 0;
     char buf[1024];
     while(1){
+
+        if(buffer_.size() >= bufferMaxSize_)
+        {
+            break;
+        }
+
         n = ::read(connfd_.fd(), buf, 1023);
         buf[n] = '\0';
         if(n < 0){
             n = 0;
-            //perror("read error");
             if(errno == ECONNRESET){
-                closeFlag = true;
+                log("ECONNRESET");
             }
-            if(errno == EAGAIN){
-                log("eagain");
+            else if(errno == EAGAIN){
+                log("EAGAIN");
             }
             break;
 
@@ -120,22 +148,17 @@ void Connection::handleRead(){
             //一般来说,read到0算是对方关闭了套接字的写端,
             //但是正确使用epoll的话,有更优雅的回调方式
             //所以这里即使读到了0,也不close,而是等epoll发出EPOLLRDHUP再调用closecallback
-            closeFlag = true;
             break;
         }
 
         buffer_.append(buf, n);
+
     }
 
 
     if(messageCallback_){
         messageCallback_(shared_from_this());
     }
-
-//    if(closeFlag){
-//       handleClose();
-//    }
-
 }
 
 void Connection::handleError()
@@ -145,7 +168,8 @@ void Connection::handleError()
 
 void Connection::handleWrite()
 {
-    if(writeCallback_){
+    if(writeCallback_)
+    {
         writeCallback_(shared_from_this());
     }
 }

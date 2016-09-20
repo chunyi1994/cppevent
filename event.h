@@ -5,7 +5,8 @@
 
 namespace cppevent{
 typedef std::function<void()> EventCallback;
-class Event{
+class Event
+{
 public:
     Event(int fd, uint32_t events);
     void handleEvent();

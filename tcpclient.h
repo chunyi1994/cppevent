@@ -2,11 +2,16 @@
 #define TcpCONNECTOR_H
 #include <string>
 #include <memory>
+
 #include "connection.h"
 using std::string;
+
 namespace cppevent{
+
 class EventLoop;
-class TcpClient{
+
+class TcpClient
+{
 public:
     TcpClient(EventLoop *loop);
     void connect(const string& ip, int port);

@@ -7,7 +7,8 @@
 #include <fcntl.h>
 namespace cppevent{
 //RAII的Sockst类, 会在析构时关闭fd
-class Socket{
+class Socket
+{
 public:
     //typedef std::shared_ptr<sockets::InetAddress> AddressPtr;
     Socket(int fd = -1);

@@ -36,5 +36,6 @@ HEADERS += \
     httpclient.h \
     time_event.h \
     timer.h \
-    time_event_compare.h
+    time_event_compare.h \
+    tcp_address.h
 

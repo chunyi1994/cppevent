@@ -11,7 +11,8 @@ namespace cppevent{
 typedef __time_t time_t;
 
 
-class Time{
+class Time
+{
 public:
     Time(const timeval& tv);
     Time(time_t sec = 0, time_t usec = 0);

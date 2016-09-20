@@ -4,6 +4,7 @@
 #include <vector>
 #include <functional>
 #include <queue>
+
 #include "time_event_compare.h"
 #include "thread_safe_queue.h"
 namespace cppevent{
@@ -11,7 +12,8 @@ namespace cppevent{
 class Poller;
 class Event;
 
-class EventLoop{
+class EventLoop
+{
     typedef std::function<void()> TaskFunc;
     typedef std::priority_queue<TimeEventPtr, std::vector<TimeEventPtr>, TimeEventCompare> TimeQueue;
 public:

@@ -16,7 +16,8 @@ string content;
 
 //还没写完,
 //写的是一个翻墙的小程序,测试失败
-class ProxyServer{
+class ProxyServer
+{
 public:
     ProxyServer(EventLoop* loop, size_t port) : loop_(loop), server_(loop, port)
     {

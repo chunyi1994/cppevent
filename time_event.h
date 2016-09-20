@@ -2,13 +2,14 @@
 #define TIMEEVENT_H
 #include <functional>
 #include <memory>
+
 #include "timer.h"
 
 namespace cppevent{
 
 typedef std::function<void()> TimeCallback;
 
-enum TimeEventType{
+enum TimeEventType {
     TIME_TYPE_ALWAYS,
     TIME_TYPE_ONCE,
     TIME_TYPE_NOLONGER

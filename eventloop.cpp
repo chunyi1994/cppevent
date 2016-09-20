@@ -5,11 +5,15 @@
 #include "utils.h"
 namespace cppevent{
 
-EventLoop::EventLoop():quit_(false),poller_(std::make_shared<Poller>()), taskQueue_(){}
+EventLoop::EventLoop():
+    quit_(false),
+    poller_(std::make_shared<Poller>()),
+    taskQueue_(){}
 
 EventLoop::~EventLoop(){}
 
-void EventLoop::loop(){
+void EventLoop::loop()
+{
     while(!quit_){
         activeEvents_.clear();
         processTimeEvent();
@@ -21,7 +25,8 @@ void EventLoop::loop(){
     }
 }
 
-void EventLoop::addEvent(Event *event){
+void EventLoop::addEvent(Event *event)
+{
     poller_->addEvent(event);
 }
 
@@ -30,11 +35,13 @@ void EventLoop::addTimeEvent(const TimeEventPtr &timeEventPtr)
     timeQueue_.push(timeEventPtr);
 }
 
-void EventLoop::addTask(const EventLoop::TaskFunc &task){
+void EventLoop::addTask(const EventLoop::TaskFunc &task)
+{
     taskQueue_.push(task);
 }
 
-void EventLoop::doTask(){
+void EventLoop::doTask()
+{
     while(!taskQueue_.empty()){
         TaskFunc func = *(taskQueue_.front());
         taskQueue_.pop();

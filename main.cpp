@@ -18,7 +18,6 @@
 #include "httpclient.h"
 #include "timer.h"
 #include <fstream>
-//以上这么多乱七八糟的头文件还没来得及清理
 using namespace std;
 using namespace cppevent;
 
@@ -47,17 +46,20 @@ int main(){
         log("run every 3");
     });
 
+
+
     server.setMessageCallback([](const ConnectionPtr& conn){
                 string msg = conn->readAll();
                 cout<<msg<<endl;
+                conn->send(msg);
     });
 
     server.setConnectionCallback([](const ConnectionPtr& conn){
         if(conn->connecting()){
-            log("New Connection");
-
+            log("New Connection:" + conn->address().ip_ + ":" + int2string(conn->address().port_));
         }else{
             log("Connection Close");
+
         }
     });
 

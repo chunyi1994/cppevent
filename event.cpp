@@ -6,15 +6,18 @@ Event::Event(int fd, uint32_t event):fd_(fd), events_(event){
 }
 
 
-uint32_t Event::events() const{
+uint32_t Event::events() const
+{
     return events_;
 }
 
-void Event::setReadCallback(const EventCallback &cb){
+void Event::setReadCallback(const EventCallback &cb)
+{
     readCallback_ = cb;
 }
 
-void Event::setWriteCallback(const EventCallback &cb){
+void Event::setWriteCallback(const EventCallback &cb)
+{
     writeCallback_ = cb;
 }
 
@@ -27,15 +30,18 @@ void Event::setRevents(uint32_t ev){
     revents_ = ev;
 }
 
-void Event::setCloseCallback(const EventCallback &cb){
+void Event::setCloseCallback(const EventCallback &cb)
+{
     closeCallback_ = cb;
 }
 
-int Event::fd() const {
+int Event::fd() const
+{
     return fd_;
 }
 
-void Event::setFd(int fd){
+void Event::setFd(int fd)
+{
     fd_ = fd;
 }
 
@@ -45,20 +51,24 @@ void Event::handleEvent(){
 //        closeCallback_();
 //    }
 
-    if(revents_ & EPOLLRDHUP){
+    if(revents_ & EPOLLRDHUP && closeCallback_)
+    {
         //当对方close套接字的时候,会调用这里
         closeCallback_();
     }
 
-    if(revents_ & EPOLLIN && readCallback_){
+    if(revents_ & EPOLLIN && readCallback_)
+    {
         readCallback_();
     }
 
-    if(revents_ & EPOLLOUT && writeCallback_){
+    if(revents_ & EPOLLOUT && writeCallback_)
+    {
         writeCallback_();
     }
 
-    if(revents_ & EPOLLERR && errorCallback_){
+    if(revents_ & EPOLLERR && errorCallback_)
+    {
         errorCallback_();
     }
 }

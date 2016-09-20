@@ -6,13 +6,16 @@ Socket::Socket(int fd) : fd_(fd){}
 
 Socket::~Socket()
 {
-    if(fd_ != -1){
+    if(fd_ != -1)
+    {
         ::close(fd_);
     }
 }
 
-void Socket::setFd(int fd){
-    if(fd_ != -1){
+void Socket::setFd(int fd)
+{
+    if(fd_ != -1)
+    {
         ::close(fd_);
     }
     fd_ =fd;
