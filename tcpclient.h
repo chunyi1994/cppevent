@@ -19,6 +19,8 @@ public:
     void setMessageCallback(const MessageCallback& cb);
 
 private:
+    void handleClose(const ConnectionPtr& conn);
+
     EventLoop* loop_;
     std::shared_ptr<Connection> connPtr_;
     ConnectionCallback connectionCallback_;

@@ -26,6 +26,13 @@ void Poller::addEvent(Event *event)
 int Poller::wait(vector<Event*> *activeEvents){
     int maxNumEvents = ::epoll_wait(epSock_.fd(),
                                     &*events_.begin(), MAX_EPOLL_NUM, 500); //500应该是毫秒
+    if(maxNumEvents < 0)
+    {
+        log("maxNumEvents = " + int2string(maxNumEvents));
+        perror("Epoll error :");
+        return maxNumEvents;
+    }
+
     std::for_each(events_.begin(), events_.begin() + maxNumEvents,
                   [=](epoll_event event)
     {

@@ -17,7 +17,8 @@ typedef std::function<void(const ConnectionPtr &)> MessageCallback;
 typedef std::function<void(const ConnectionPtr &)> ConnectionCallback;
 typedef std::function<void(int)> CloseCallback;
 
-class Connection : public std::enable_shared_from_this <Connection>{
+class Connection : public std::enable_shared_from_this <Connection>
+{
 
 public:
     Connection(EventLoop *loop, int fd);

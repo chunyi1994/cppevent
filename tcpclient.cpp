@@ -64,9 +64,10 @@ void TcpClient::connect(const std::string &ip, int port)
    }
    setnonblocking(sockfd);
    TcpAddress tcpAddr(ip, port);
-   connPtr_->setAddress(tcpAddr);
    connPtr_ = std::make_shared<Connection>(loop_, sockfd);
+   connPtr_->setAddress(tcpAddr);
    connPtr_->setMessageCallback(messageCallback_);
+   connPtr_->setConnectionCallback(std::bind(&TcpClient::handleClose, this, std::placeholders::_1));
 
     if(connectionCallback_)
     {
@@ -87,6 +88,26 @@ void TcpClient::setConnectionCallback(const ConnectionCallback &cb)
 void TcpClient::setMessageCallback(const MessageCallback &cb)
 {
     messageCallback_ = cb;
+}
+
+void connKeep2(ConnectionPtr ptr)
+{
+
+}
+
+void TcpClient::handleClose(const ConnectionPtr& conn)
+{
+
+    if(!conn->connecting())
+    {
+        loop_->addTask(std::bind(connKeep2, conn));
+        connPtr_ = NULL;
+    }
+
+    if(connectionCallback_)
+    {
+        connectionCallback_(conn);
+    }
 }
 
 }

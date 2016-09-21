@@ -70,6 +70,7 @@ void Event::handleEvent(){
     if(revents_ & EPOLLERR && errorCallback_)
     {
         errorCallback_();
+
     }
 }
 //http://blog.clawz.me/2009/03/12/09-epoll-event-test/

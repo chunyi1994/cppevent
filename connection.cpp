@@ -22,7 +22,7 @@ Connection::Connection(EventLoop *loop, int fd) :
 
 Connection::~Connection()
 {
-    //log("~Connection");
+    log("~Connection and close fd.");
 }
 
 void Connection::setMessageCallback(const MessageCallback &cb)
@@ -122,9 +122,13 @@ void Connection::handleClose()
 void Connection::handleRead()
 {
     int n = 0;
+    bool closeFlag = false;
     char buf[1024];
     while(1){
-
+        //每当设定的buffer到了maxsize的时候,便停止读取缓冲区的数据
+        //这样做是因为,如果一直被发送数据,
+        //那么一直在while里面,则buffer_可能会无限增大
+        //如果对方持续发送1G才停,内存可能会爆掉
         if(buffer_.size() >= bufferMaxSize_)
         {
             break;
@@ -136,6 +140,7 @@ void Connection::handleRead()
             n = 0;
             if(errno == ECONNRESET){
                 log("ECONNRESET");
+                closeFlag = true;
             }
             else if(errno == EAGAIN){
                 log("EAGAIN");
@@ -148,6 +153,7 @@ void Connection::handleRead()
             //一般来说,read到0算是对方关闭了套接字的写端,
             //但是正确使用epoll的话,有更优雅的回调方式
             //所以这里即使读到了0,也不close,而是等epoll发出EPOLLRDHUP再调用closecallback
+            closeFlag = true;
             break;
         }
 
@@ -156,14 +162,22 @@ void Connection::handleRead()
     }
 
 
-    if(messageCallback_){
+    if(messageCallback_)
+    {
         messageCallback_(shared_from_this());
     }
 }
 
 void Connection::handleError()
 {
+    int       err = 0;
+    socklen_t errlen = sizeof(err);
+    if (::getsockopt(connfd_.fd(), SOL_SOCKET, SO_ERROR, (void *)&err, &errlen) == 0)
+    {
+        printf("error = %s\n", ::strerror(err));
+    }
     log("handleError");
+    handleClose();
 }
 
 void Connection::handleWrite()

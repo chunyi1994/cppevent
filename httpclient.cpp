@@ -84,8 +84,11 @@ int HttpClient::post(const std::string &url, const std::string& data, size_t por
 
     tcpClient_.connect(ip, port);
     tcpClient_.setConnectionCallback([this, data](const ConnectionPtr& conn){
-        conn->send(message_.toString());
-        conn->send(data);
+        if(conn->connecting()){
+            conn->send(message_.toString());
+            conn->send(data);
+        }
+
     });
     return 0;
 }
@@ -102,11 +105,13 @@ void HttpClient::setDefaultHeaders(const std::string& host)
 
 void HttpClient::handleMessage(const ConnectionPtr &conn)
 {
+    log("handle Message");
     std::string msgStr = conn->readAll();
     std::cout<<msgStr<<std::endl;
 
     if(msgStr.length() < 11 || !beginWith(msgStr, "HTTP/1."))
     {
+        conn->shutdown();
         return;
     }
 

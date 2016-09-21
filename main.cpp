@@ -22,19 +22,20 @@ using namespace std;
 using namespace cppevent;
 
 
-//int main(){
-//    EventLoop loop;
-//    HttpClient client(&loop);
-//    client.get("http://www.qq.com", 80);
-//    loop.loop();
-//    return 0;
-//}
+int main(){
+    EventLoop loop;
+    HttpClient client(&loop);
+    client.get("http://www.baidu.com", 80);
+    loop.loop();
+    cout<<"hello world"<<endl;
+    return 0;
+}
 
 //-----------------------------------------------------------------------------------------------------------------
 
 //tcp server demo
 
-int main(){
+int main2(){
     EventLoop loop;
     TcpServer server(&loop, 24444);
     Time time(3);
