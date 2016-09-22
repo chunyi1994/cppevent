@@ -25,7 +25,6 @@ void QQCrawler::handleMessage(const HttpMessage &response, const string &content
     for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
         std::smatch match = *i;
         std::string match_str = match[1];
-        std::cout << match_str << '\n';
         std::string url = "http://" + match_str + ".jpg";
         log(url);
     }
