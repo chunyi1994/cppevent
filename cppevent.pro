@@ -16,7 +16,9 @@ SOURCES += main.cpp \
     http_message.cpp \
     httpclient.cpp \
     time_event.cpp \
-    timer.cpp
+    timer.cpp \
+    demo/tiny_proxy.cpp \
+    demo/qq_crawler.cpp
 
 HEADERS += \
     poller.h \
@@ -31,11 +33,12 @@ HEADERS += \
     thread_safe_queue.h \
     tcpclient.h \
     chatroom.h \
-    proxy_test.h \
     http_message.h \
     httpclient.h \
     time_event.h \
     timer.h \
     time_event_compare.h \
-    tcp_address.h
+    tcp_address.h \
+    demo/tiny_proxy.h \
+    demo/qq_crawler.h
 

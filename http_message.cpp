@@ -9,7 +9,8 @@ HttpMessage::HttpMessage() :
     path_(),
     version_(),
     method_(),
-    status_()
+    status_(),
+    statusCode_(0)
 {
 
 }
@@ -130,8 +131,14 @@ void HttpMessage::parse(const std::string &content, int type)
         left = pos + 2;
         pos = line.length() - 1;
         std::string value = line.substr(left, pos);
+        trim(value);//去掉左右空格
         headersMap_[name] = value;
     }
+}
+
+HttpMessage::HeadersMap::iterator HttpMessage::find(const std::__cxx11::string &key)
+{
+    return headersMap_.find(key);
 }
 
 HttpMessage::HeadersMap::iterator HttpMessage::begin()

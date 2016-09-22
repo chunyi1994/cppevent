@@ -1,53 +1,57 @@
 #include <iostream>
-#include "eventloop.h"
-#include "event.h"
-#include "socket.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include "listener.h"
-#include "tcpserver.h"
-#include "tcpclient.h"
-#include "chatroom.h"
-#include "proxy_test.h"
-#include "http_message.h"
-#include "utils.h"
-#include "httpclient.h"
-#include "timer.h"
 #include <fstream>
+
+#include "eventloop.h"
+#include "tcpserver.h"
+#include "httpclient.h"
+#include "demo/tiny_proxy.h"
+#include "demo/qq_crawler.h"
 using namespace std;
 using namespace cppevent;
 
 
 int main(){
     EventLoop loop;
-    HttpClient client(&loop);
-    client.get("http://www.baidu.com", 80);
+    QQCrawler crawler(&loop);
+    crawler.start();
     loop.loop();
     cout<<"hello world"<<endl;
     return 0;
 }
 
+
+//int main(){
+//    EventLoop loop;
+//    ProxyServer server(&loop, 8080);
+//    server.start();
+//    loop.loop();
+//    cout<<"hello world"<<endl;
+//    return 0;
+//}
+
+//int main(){
+//    EventLoop loop;
+//    HttpClient client(&loop);
+//    client.setMessageCallback([](const HttpMessage& response, const std::string& content){
+//        cout<<"code : "<<response.statusCode()<<endl;
+//        for(auto &w : response){
+//            cout<<w.first <<" : " << w.second <<endl;
+//        }
+//        cout<<content<<endl;
+//    });
+//    client.get("http://www.baidu.com", 80);
+//    loop.loop();
+//    cout<<"hello world"<<endl;
+//    return 0;
+//}
+
 //-----------------------------------------------------------------------------------------------------------------
 
 //tcp server demo
 
-int main2(){
+int serverDemo(){
     EventLoop loop;
-    TcpServer server(&loop, 24444);
-    Time time(3);
-    loop.runAfter(time, [](){
-        log("run After 3");
-    });
-
-    loop.runEvery(time, [](){
-        log("run every 3");
-    });
-
-
+    TcpServer server(&loop, 8080);
 
     server.setMessageCallback([](const ConnectionPtr& conn){
                 string msg = conn->readAll();

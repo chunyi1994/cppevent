@@ -17,6 +17,9 @@ typedef std::function<void(const ConnectionPtr &)> MessageCallback;
 typedef std::function<void(const ConnectionPtr &)> ConnectionCallback;
 typedef std::function<void(int)> CloseCallback;
 
+const int STATUS_CONNECTING = 1;
+const int STATUS_DISCONNECT = 0;
+
 class Connection : public std::enable_shared_from_this <Connection>
 {
 

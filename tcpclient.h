@@ -14,10 +14,10 @@ class TcpClient
 {
 public:
     TcpClient(EventLoop *loop);
-    void connect(const string& ip, int port);
+    int connect(const string& ip, int port);
     void setConnectionCallback(const ConnectionCallback& cb);
     void setMessageCallback(const MessageCallback& cb);
-
+    void shutdown();
 private:
     void handleClose(const ConnectionPtr& conn);
 

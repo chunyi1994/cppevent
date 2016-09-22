@@ -55,20 +55,20 @@ int tcpInit(const string &ip, int port)
     return sockfd;
 }
 
-void TcpClient::connect(const std::string &ip, int port)
+int TcpClient::connect(const std::string &ip, int port)
 {
-   int sockfd =  tcpInit(ip,port);
-   if(sockfd < 0){
-       log("connect err:");
-       return;
-   }
-   setnonblocking(sockfd);
-   TcpAddress tcpAddr(ip, port);
-   connPtr_ = std::make_shared<Connection>(loop_, sockfd);
-   connPtr_->setAddress(tcpAddr);
-   connPtr_->setMessageCallback(messageCallback_);
-   connPtr_->setConnectionCallback(std::bind(&TcpClient::handleClose, this, std::placeholders::_1));
-
+    int sockfd =  tcpInit(ip,port);
+    if(sockfd < 0){
+        log("connect err:");
+        return sockfd;
+    }
+    setnonblocking(sockfd);
+    TcpAddress tcpAddr(ip, port);
+    connPtr_ = std::make_shared<Connection>(loop_, sockfd);
+    connPtr_->setAddress(tcpAddr);
+    connPtr_->setMessageCallback(messageCallback_);
+    connPtr_->setConnectionCallback(std::bind(&TcpClient::handleClose, this, std::placeholders::_1));
+    connPtr_->setConnectionStatus(STATUS_CONNECTING);
     if(connectionCallback_)
     {
         connectionCallback_(connPtr_);
@@ -77,6 +77,8 @@ void TcpClient::connect(const std::string &ip, int port)
     {
         log("no connectionCallback");
     }
+
+    return sockfd;
 }
 
 void TcpClient::setConnectionCallback(const ConnectionCallback &cb)
@@ -88,6 +90,11 @@ void TcpClient::setConnectionCallback(const ConnectionCallback &cb)
 void TcpClient::setMessageCallback(const MessageCallback &cb)
 {
     messageCallback_ = cb;
+}
+
+void TcpClient::shutdown()
+{
+    handleClose(connPtr_);
 }
 
 void connKeep2(ConnectionPtr ptr)

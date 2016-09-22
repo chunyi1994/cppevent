@@ -122,7 +122,6 @@ void Connection::handleClose()
 void Connection::handleRead()
 {
     int n = 0;
-    bool closeFlag = false;
     char buf[1024];
     while(1){
         //每当设定的buffer到了maxsize的时候,便停止读取缓冲区的数据
@@ -140,7 +139,6 @@ void Connection::handleRead()
             n = 0;
             if(errno == ECONNRESET){
                 log("ECONNRESET");
-                closeFlag = true;
             }
             else if(errno == EAGAIN){
                 log("EAGAIN");
@@ -153,7 +151,6 @@ void Connection::handleRead()
             //一般来说,read到0算是对方关闭了套接字的写端,
             //但是正确使用epoll的话,有更优雅的回调方式
             //所以这里即使读到了0,也不close,而是等epoll发出EPOLLRDHUP再调用closecallback
-            closeFlag = true;
             break;
         }
 

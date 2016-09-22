@@ -6,20 +6,24 @@ namespace cppevent{
 
 void parseUrl(const std::string& url, std::string& host, std::string& path);
 
-HttpClient::HttpClient(EventLoop *loop) : tcpClient_(loop), message_()
+HttpClient::HttpClient(EventLoop *loop) : tcpClient_(loop), request_(), response_()
 {
     tcpClient_.setMessageCallback(std::bind(&HttpClient::handleMessage, this, std::placeholders::_1));
 }
 
 void HttpClient::addHeader(const std::string &name, const std::string &value)
 {
-    message_[name] = value;
+    request_[name] = value;
 }
 
 void HttpClient::setMessageCallback(const HttpMessageCallback &cb)
 {
     httpMessageCallback_ = cb;
-    //还没想好callback怎么写
+}
+
+void HttpClient::setHttpMessage(const HttpMessage &msg)
+{
+    request_ = msg;
 }
 
 int HttpClient::get(const std::string &url, size_t port)
@@ -51,18 +55,21 @@ int HttpClient::get(const std::string &url, const std::string& data, size_t port
     {
         path = path + "?" + data;
     }
-    message_.setRequestLine("GET", path, "HTTP/1.1");
-    message_["Host"] = host;
+    request_.setRequestLine("GET", path, "HTTP/1.1");
+    request_["Host"] = host;
     setDefaultHeaders(host);
     tcpClient_.setConnectionCallback([this](const ConnectionPtr& conn){
-        std::string str = message_.toString();
-        std::cout<<str<<std::endl;
-        conn->send(str);
+        if(conn->connecting())
+        {
+            std::string str = request_.toString();
+            //std::cout<<str<<std::endl;
+            conn->send(str);
+        }
     });
 
-    tcpClient_.connect(ip, port);
+    code = tcpClient_.connect(ip, port);
 
-    return 0;
+    return code;
 }
 
 int HttpClient::post(const std::string &url, const std::string& data, size_t port)
@@ -78,75 +85,57 @@ int HttpClient::post(const std::string &url, const std::string& data, size_t por
         log("gethostbyname error.");
         return code;
     }
-    message_.setRequestLine("POST", path, "HTTP/1.1");
+    request_.setRequestLine("POST", path, "HTTP/1.1");
     setDefaultHeaders(host);
-    message_["Host"] = host;
+    request_["Host"] = host;
 
-    tcpClient_.connect(ip, port);
+
     tcpClient_.setConnectionCallback([this, data](const ConnectionPtr& conn){
         if(conn->connecting()){
-            conn->send(message_.toString());
+            conn->send(request_.toString());
             conn->send(data);
         }
 
     });
-    return 0;
+
+    code =  tcpClient_.connect(ip, port);
+    return code;
 }
 
 void HttpClient::setDefaultHeaders(const std::string& host)
 {
-    message_["Host"] = host;
-    message_["Connection"] = "keep-alive";
-    message_["Accept-Language"] = "zh-CN,zh;q=0.8";
-    message_["Accept"] =  "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
-    message_["User-Agent"] = "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36";
-    message_["Cache-Control"] = "max-age=0";
+    request_["Host"] = host;
+    request_["Connection"] = "keep-alive";
+    request_["Accept-Language"] = "zh-CN,zh;q=0.8";
+    request_["Accept"] =  "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
+    request_["User-Agent"] = "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36";
+    request_["Cache-Control"] = "max-age=0";
 }
 
 void HttpClient::handleMessage(const ConnectionPtr &conn)
 {
-    log("handle Message");
     std::string msgStr = conn->readAll();
-    std::cout<<msgStr<<std::endl;
-
-    if(msgStr.length() < 11 || !beginWith(msgStr, "HTTP/1."))
+    if(msgStr.length() > 11 && beginWith(msgStr, "HTTP/1."))  //11随便打的
     {
-        conn->shutdown();
-        return;
+        size_t pos = msgStr.find("\r\n\r\n");
+        if(pos != std::string::npos)
+        {
+            pos += 4;
+            std::string httpResponseStr = msgStr.substr(0, pos);
+            msgStr = msgStr.substr(pos, msgStr.length());
+            response_.parse(httpResponseStr, TYPE_HTTP_RESPONSE);
+        }
     }
 
-    HttpMessage msg;
-    msg.parse(msgStr, TYPE_HTTP_RESPONSE);
-    //httpMessageCallback_(conn, msg);
-}
+    if(httpMessageCallback_)
+    {
+        httpMessageCallback_(response_, msgStr);
+    }
 
-void parseUrl(const std::string& url, std::string& host, std::string& path)
-{
-
-    size_t pos1 = 0;
-    if(beginWith(url, "http://"))
+    auto iterFind = response_.find("Connection");
+    if(iterFind != response_.end() && iterFind->second == "close")
     {
-        pos1 = 7;
-    }
-    else if(beginWith(url, "https://"))
-    {
-        pos1 = 8;
-    }
-    size_t pos2 = url.find("/", pos1);
-    if(pos2 == std::string::npos)
-    {
-        pos2 = url.length();
-    }
-    host = url.substr(pos1, pos2 - pos1);
-
-    //path
-    if(pos2 == url.length())
-    {
-        path = "/";
-    }
-    else
-    {
-        path = url.substr(pos2, url.length() - pos2);
+        tcpClient_.shutdown();
     }
 
 }

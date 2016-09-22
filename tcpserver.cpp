@@ -51,7 +51,7 @@ void TcpServer::newConnection(int sockfd, sockaddr_in *addr, size_t size)
     conn->setAddress(tcpAddr);
     conn->setMessageCallback(messageCallback_);
     conn->setConnectionCallback(std::bind(&TcpServer::handleConnection, this, std::placeholders::_1));
-    conn->setConnectionStatus(true);
+    conn->setConnectionStatus(STATUS_CONNECTING);
     connections_[sockfd] = conn;
     handleConnection(conn);
 }

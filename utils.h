@@ -14,6 +14,18 @@
 #include <sstream>
 namespace cppevent{
 
+static bool trim(std::string& str)
+{
+    if (str.empty())
+    {
+        return false;
+    }
+
+    str.erase(0, str.find_first_not_of(" "));
+    str.erase( str.find_last_not_of(" ") + 1);
+    return true;
+}
+
 static bool beginWith(const std::string& src, const std::string& dest)
 {
     if(dest.length() > src.length())
@@ -84,6 +96,38 @@ static int getHostByName(const std::string& name, std::string& ip){
     inet_ntop(hptr->h_addrtype, *pptr, str, sizeof(str));
     ip = str;
     return 0;
+}
+
+
+static void parseUrl(const std::string& url, std::string& host, std::string& path)
+{
+
+    size_t pos1 = 0;
+    if(beginWith(url, "http://"))
+    {
+        pos1 = 7;
+    }
+    else if(beginWith(url, "https://"))
+    {
+        pos1 = 8;
+    }
+    size_t pos2 = url.find("/", pos1);
+    if(pos2 == std::string::npos)
+    {
+        pos2 = url.length();
+    }
+    host = url.substr(pos1, pos2 - pos1);
+
+    //path
+    if(pos2 == url.length())
+    {
+        path = "/";
+    }
+    else
+    {
+        path = url.substr(pos2, url.length() - pos2);
+    }
+
 }
 }
 

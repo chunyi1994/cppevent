@@ -25,6 +25,8 @@ public:
     int statusCode() const;
     void parse(const std::string &content, int type);
 
+    HeadersMap::iterator find(const std::string& key);
+
     HeadersMap::iterator begin();
     HeadersMap::iterator end();
 
