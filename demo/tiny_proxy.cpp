@@ -2,10 +2,7 @@
 
 #include "tiny_proxy.h"
 #include "../utils.h"
-#include "../tcpclient.h"
 #include "../http_message.h"
-
-namespace cppevent{
 
 ProxyServer::ProxyServer(EventLoop* loop, size_t port) :
     loop_(loop),
@@ -17,7 +14,7 @@ ProxyServer::ProxyServer(EventLoop* loop, size_t port) :
     server_.setConnectionCallback(std::bind(&ProxyServer::handleConnection, this, std::placeholders::_1));
 }
 
-void cppevent::ProxyServer::start()
+void ProxyServer::start()
 {
     server_.start();
 }
@@ -123,7 +120,3 @@ void ProxyServer::handleWebSiteMessage(const ConnectionPtr &webConn)
 //    client->send(websiteMsg);
 }
 
-
-
-
-}

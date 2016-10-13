@@ -3,6 +3,8 @@
 #include "../tcpserver.h"
 #include "../eventloop.h"
 #include "../connection.h"
+#include "../tcpclient.h"
+
 #include "utils.h"
 #include <functional>
 #include <iostream>
@@ -12,9 +14,7 @@
 //还没写完,不知道哪里出了问题
 //写的是一个翻墙的小程序,测试失败
 
-namespace cppevent{
-
-class TcpClient;
+using namespace cppevent;
 
 class ProxyServer
 {
@@ -34,6 +34,6 @@ private:
     std::map<int, TcpClientPtr> clientsMap_;
     std::map<int, ConnectionPtr> clientConnsMap_;
 };
-}
+
 #endif // PROXY_TEST_H
 
