@@ -89,5 +89,26 @@ int HttpResponse::status_code() const
 {
     return status_code_;
 }
+
+HttpResponse default_response() {
+        HttpResponse response;
+        response.set_status_line("HTTP/1.1", 200, "OK");
+        response["Server"] = "Cppevent Server 1.0";
+        response["Content-Type"] = "text/html";
+        return response;
+}
+
+HttpResponse bad_request() {
+    HttpResponse response = default_response();
+    response.set_status_line("HTTP/1.1", 400, "Bad Request");
+    return response;
+}
+
+HttpResponse not_found() {
+    HttpResponse response = default_response();
+    response.set_status_line("HTTP/1.1", 404, "Not found");
+    return response;
+}
+
 }//namespace
 }//namespace

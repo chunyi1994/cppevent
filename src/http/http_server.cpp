@@ -15,29 +15,47 @@ HttpServer::HttpServer(EventLoop *loop, std::size_t port) :
 {
     listener_.set_new_connection_callback([this] (Connection::Pointer conn) {
         conns_.insert(conn);
+        conn->set_error_callback([this] (Connection::Pointer conn) {
+            LOG_DEBUG<<"handle error";
+            remove(conn);
+        });
+
+        conn->set_close_callback([this](Connection::Pointer conn) {
+            LOG_DEBUG<<"handle close";
+            remove(conn);
+        });
+
         loop_->start_coroutine(
                     std::bind(&HttpServer::handle_connection, this, std::placeholders::_1, conn));
     });
     listener_.listen();
 }
 
+void HttpServer::remove(Connection::Pointer conn) {
+    auto iter = conns_.find(conn);
+    assert(iter != conns_.end());
+    conns_.erase(iter);
+}
+
 void HttpServer::handle_connection(coroutine::Coroutine *co, Connection::Pointer conn) {
     std::string msg;
     while (conn->status() == Connection::eCONNECTING) {
-        LOG_DEBUG<<"handle_connection";
-        HttpRequest request = get_request_head(co, conn, msg);
-        LOG_DEBUG<<request.to_string();
-        update_request_raw_data(co, conn, request);
+        HttpRequest request;
+        int err = update_request_head(co, conn, msg, request);
+        if (err < 0) {
+            LOG_DEBUG<<"err<0";
+            break;
+        }
+        err = update_request_raw_data(co, conn, request);
         assert(handler_);
-        LOG_DEBUG<<"handle_request";
-        handler_->handle_request(request, conn);
+        handler_->handle_request((HttpResponse::Status)err, request, conn);
     } //while
 }
 
-HttpRequest HttpServer::get_request_head(coroutine::Coroutine *co,
-                                         Connection::Pointer conn,
-                                         std::string &msg)
-{
+int HttpServer::update_request_head(coroutine::Coroutine *co,
+                                    Connection::Pointer conn,
+                                    std::string &msg,
+                                    HttpRequest& request) {
     std::size_t n = 0;
     msg = "";
     do {
@@ -46,37 +64,33 @@ HttpRequest HttpServer::get_request_head(coroutine::Coroutine *co,
         //LOG_DEBUG<<recv;
         msg.append(recv);
         if (conn->status() != Connection::eCONNECTING) {
-            //todo
-            break;
+            return HttpResponse::eERROR;
         }
         if (msg.find("\r\n\r\n") != std::string::npos) {
             break;
         }
     } while (1);
 
-    HttpRequest request;
     request.parse(msg);
-    return request;
+    return HttpResponse::eUNKNOWN;
 }
 
-void HttpServer::update_request_raw_data(coroutine::Coroutine *co,
-                                      Connection::Pointer conn,
+int HttpServer::update_request_raw_data(coroutine::Coroutine *co,
+                                         Connection::Pointer conn,
                                          HttpRequest &request) {
     std::size_t n = 0;
     int content_len = utils::to_int(request["Content-Length"]);
     int need_read_total = content_len - (int)request.raw_data().size();
-    LOG_DEBUG<<"len:"<<content_len;
-    LOG_DEBUG<<"need_read_total:"<<need_read_total;
-
     std::string data;
     while (1) {
-        if (need_read_total <= 0) {
-            //todo
-            break;
+        if (need_read_total < 0) {
+            return HttpResponse::eBAD_REQUEST;
+        }
+        if (need_read_total == 0) {
+            return HttpResponse::eUNKNOWN;
         }
         if (conn->status() != Connection::eCONNECTING) {
-            //todo
-            break;
+            return HttpResponse::eERROR;
         }
         std::size_t need_read = std::min((std::size_t)need_read_total, buf_.size());
         n = utils::read_at_least(conn, Buffer(buf_), need_read, co);
@@ -89,6 +103,7 @@ void HttpServer::update_request_raw_data(coroutine::Coroutine *co,
         need_read_total -= n;
     }
     request.append_raw_data(data);
+    return HttpResponse::eUNKNOWN;
 }
 
 

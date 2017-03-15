@@ -17,11 +17,9 @@ public:
     static std::string content_type(const std::string &path);
     static ssize_t file_size(const char*);
     static Pointer create() { return std::make_shared<HttpHandler>(); }
-    virtual void handle_request(HttpRequest&, Connection::Pointer conn);
+
+    virtual void handle_request(HttpResponse::Status status ,HttpRequest&, Connection::Pointer conn);
 protected:
-    HttpResponse default_response();
-    HttpResponse bad_request();
-    HttpResponse not_found();
     int handle_static_file(HttpRequest & request, Connection::Pointer conn);
 private:
     std::string static_folder_path_;

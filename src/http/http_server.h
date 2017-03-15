@@ -16,13 +16,16 @@ public:
     HttpServer(EventLoop* loop, std::size_t port);
     void set_handler(HttpHandler::Pointer handler);
     HttpHandler::Pointer handler() { return handler_; }
+    std::size_t size() const { return conns_.size(); }
 private:
+    void remove(Connection::Pointer conn);
     void handle_connection(coroutine::Coroutine* co, Connection::Pointer conn);
-    HttpRequest get_request_head(coroutine::Coroutine* co,
+    int update_request_head(coroutine::Coroutine* co,
                                  Connection::Pointer conn,
-                                 std::string&msg);
+                                 std::string&msg,
+                                HttpRequest& request);
 
-    void update_request_raw_data(coroutine::Coroutine* co,
+    int update_request_raw_data(coroutine::Coroutine* co,
                                  Connection::Pointer conn,
                                  HttpRequest& request);
 

@@ -13,45 +13,35 @@ HttpHandler::HttpHandler() :
 {
 }
 
-void HttpHandler::handle_request(HttpRequest & request, Connection::Pointer conn) {
+void HttpHandler::handle_request(HttpResponse::Status status,
+                                 HttpRequest & request,
+                                 Connection::Pointer conn) {
+    if (status == HttpResponse::eBAD_REQUEST) {
+        std::string ret = "bad_request";
+        HttpResponse response = bad_request();
+        response["Content-Length"] = utils::to_string(ret.size());
+        conn->send(response.to_string());
+        conn->send(ret);
+        return;
+    }
     if (request.method() == "GET") {
         handle_static_file(request, conn);
         return;
     }
-    LOG_TRACE<<"2";
     std::string ret = "bad_request";
     HttpResponse response = bad_request();
-    response["Content-Type"] = utils::to_string(ret.size());
+    response["Content-Length"] = utils::to_string(ret.size());
+
     conn->send(response.to_string());
     conn->send(ret);
 }
 
-HttpResponse HttpHandler::default_response() {
-    HttpResponse response;
-    response.set_status_line("HTTP/1.1", 200, "OK");
-    response["Server"] = "Cppevent Server 1.0";
-    response["Content-Type"] = "text/html";
-    return response;
-}
 
-HttpResponse HttpHandler::bad_request() {
-    HttpResponse response = default_response();
-    response.set_status_line("HTTP/1.1", 400, "Bad Request");
-    return response;
-}
-
-HttpResponse HttpHandler::not_found() {
-    HttpResponse response = default_response();
-    response.set_status_line("HTTP/1.1", 404, "Not found");
-    return response;
-}
 
 int HttpHandler::handle_static_file(HttpRequest & request, Connection::Pointer conn) {
-    LOG_TRACE<<"1";
     HttpResponse response;
 
     if (request.path().empty()) {
-        LOG_TRACE<<"3";
         std::string ret = "bad_request";
         response = bad_request();
         response["Content-Type"] = utils::to_string(ret.size());
@@ -61,30 +51,30 @@ int HttpHandler::handle_static_file(HttpRequest & request, Connection::Pointer c
     }
     std::string path = request.path().erase(0, 1);
     path = static_folder_path_ + path;
-    std::fstream ifs(path);
+    std::ifstream ifs(path,  std::ios::binary);
     if (!ifs) {
-        LOG_TRACE<<"4";
         std::string ret = "not_found";
         response = not_found();
-        response["Content-Type"] = utils::to_string(ret.size());
+        response["Content-Length"] = utils::to_string(ret.size());
         conn->send(response.to_string());
         conn->send(ret);
         return 0;
     }
-    LOG_TRACE<<"5";
     response = default_response();
     int filesize = file_size(path.data());
-    LOG_DEBUG<<"filesize："<<filesize;
     response["Content-Length"] = utils::to_string(filesize);
     response["Content-Type"] = content_type(path);
-    LOG_DEBUG<<response.to_string();
     conn->send(response.to_string());
-    std::string line;
-    while (std::getline(ifs, line)) {
-        LOG_DEBUG<<line;
-        conn->send(line);
+    std::vector<char> buf(1024);
+    int nread = 0;
+    while (!ifs.eof()) {
+        if (nread == filesize) {
+            break;
+        }
+        ifs.readsome(buf.data(), 1024);
+        nread +=  ifs.gcount();
+        conn->send(buf.data(), ifs.gcount());
     }
-    LOG_TRACE<<"6";
     return 0;
 }
 

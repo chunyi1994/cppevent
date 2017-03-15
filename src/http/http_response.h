@@ -8,6 +8,15 @@ namespace http {
 class HttpResponse : public HttpMessage
 {
 public:
+    enum Status {
+        eERROR = -1,
+        eUNKNOWN = 0,
+        eBAD_REQUEST = 1,
+        eNOT_FOUND,
+        eOK,
+        eSIZE
+    };
+
     HttpResponse();
     void parse(const std::string &content);
     void set_status_line(const std::string& version, int status_code, const std::string& status);
@@ -24,6 +33,15 @@ private:
     std::string status_;
     int status_code_;
 };
+
+
+HttpResponse default_response();
+
+
+HttpResponse bad_request();
+
+HttpResponse not_found();
+
 }//namespace
 }//namespace
 

@@ -41,6 +41,7 @@ private:
 };
 
 
+
 }//namespace
 }//namespace
 #endif // HTTPREQUEST_H
