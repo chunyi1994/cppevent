@@ -15,11 +15,11 @@ namespace test {
         listener.listen();
         net::Connection::Pointer conn;
         std::vector<char> buf(1024);
-        listener.set_new_connection_callback([&conn,&buf](net::Connection::Pointer co) {
+        listener.on_connection([&conn,&buf](net::Connection::Pointer co) {
             conn = co;
-            conn->read(net::Buffer(buf), [](const net::Connection::Pointer& c, net::Buffer buffer, std::size_t bytes) {
-                std::string recv(buffer.data(), bytes);
-                c->send(recv);
+            conn->on_read([](const net::Connection::Pointer& c) {
+                std::string recv = c->buf().read_all();
+                DEBUG_INFO<<recv;
             });
         });
         loop.loop();

@@ -9,6 +9,9 @@ static void test_utils() {
     DEBUG_INFO<<vec.size();
     vec = utils::split2("/path//", "/");
     DEBUG_INFO<<vec.size();
+
+    int a = utils::hex2int("f");
+    DEBUG_INFO<<a;
 }
 
 } //namespace

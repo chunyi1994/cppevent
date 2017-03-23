@@ -9,7 +9,7 @@ namespace test {
         net::Listener listener(&loop, 23333);
         DEBUG_INFO<<"start listen!";
         listener.listen();
-        listener.set_new_connection_callback([](net::Connection::Pointer) {
+        listener.on_connection([](net::Connection::Pointer) {
             DEBUG_INFO<<"new connection ok!";
         });
         loop.loop();

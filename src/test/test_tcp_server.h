@@ -9,25 +9,25 @@ namespace test {
 static void test_tcp_server() {
     net::EventLoop loop;
     net::TcpServer server(&loop, 23333);
-    server.set_connection_callback([](const net::Connection::ConstPointer& conn) {
-        if (conn->status() == net::Connection::eCLOSE) {
-            DEBUG_INFO<<"close";
-            // handle close
-        } else if (conn->status() == net::Connection::eCONNECTING) {
-            DEBUG_INFO<<" new connection";
-        }
+    server.on_connection([](const net::Connection::ConstPointer& conn) {
+        EXCEPT_TRUE(conn->status() == net::Connection::eCONNECTING);
     });
 
-    server.set_error_callback([](const net::Connection::ConstPointer&) {
+    server.on_close([](const net::Connection::ConstPointer& conn) {
+        EXCEPT_TRUE(conn->status() == net::Connection::eCLOSE);
+    });
+
+    server.on_error([](const net::Connection::ConstPointer&, const net::ErrorCode&) {
         DEBUG_INFO<<" error";
     });
 
-    server.set_message_callback([](const net::Connection::ConstPointer& conn,
-                                net::Buffer buffer,
-                                std::size_t bytes) {
-        std::string recv(buffer.data(), bytes);
+    server.on_message([](const net::Connection::ConstPointer& conn) {
+        std::string recv = conn->buf().read_all();
         conn->send(recv);
     });
+
+    //如果在10秒内客户端不发送心跳，则关闭
+    server.set_heartbeat_time(10);
 
     server.start();
     loop.loop();

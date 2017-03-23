@@ -29,7 +29,7 @@ static void test_http_response() {
     msg.set_status_line("HTTP/1.1", 200, "OK");
     msg["Host"] = "cn.bing.com";          //msg.addHeaders("Host","cn.bing.com");
     msg["Connection"] = "keep-alive";  //msg.addHeaders("Connection","keep-alive");
-    msg.set_cookie("keykey","valuevalue");
+    msg.set_cookie().key("11111").value("22222");
     DEBUG_INFO<< msg.to_string();
 }
 

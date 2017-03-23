@@ -8,6 +8,8 @@
 #include "test_http_message.h"
 #include "test_utils.h"
 #include "test_http_server.h"
+#include "test_http_urllib.h"
+#include "test_monitor.h"
 namespace test {
 
 static void do_test() {
@@ -16,7 +18,7 @@ static void do_test() {
     //test_time_event1();
     //test_time_event2();
    // test_time_event_event_loop();
-    //test_tcp_server();
+    test_tcp_server();
     //test_connector();
     //test_tcpclient();
    // test_coroutine();
@@ -24,7 +26,13 @@ static void do_test() {
    // test_http_request();
     //test_http_response();
     //test_utils();
-    test_http_server();
+    //test_http_server();
+    //test_utils();
+    //test_urllib();
+    //test_connector2();
+    //test_http_server2();
+    //test_monitor();
+
 }
 
 }//namespace
