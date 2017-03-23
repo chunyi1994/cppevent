@@ -16,9 +16,8 @@ public:
 public:
     HttpMessage();
     std::string& operator[](const std::string& key);
-
+    std::string& header(const std::string& key) { return operator[](key); }
     void add_header(const std::string& key,const  std::string& value);
-
     //这个操作比较费时,每次调用都会重新解析一次
     std::string to_string() const;
     //
@@ -35,6 +34,7 @@ public:
 protected:
     HeadersMap headers_map_;
 };
+std::string parse_data(const std::map<std::string, std::string> &datas);
 
 
 

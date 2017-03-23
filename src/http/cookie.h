@@ -4,6 +4,7 @@
 #include <utility>
 namespace net {
 namespace http {
+
 class Cookie
 {
 public:

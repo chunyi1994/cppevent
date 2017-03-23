@@ -17,6 +17,17 @@ void HttpMessage::add_header(const std::string &key, const std::string &value) {
     headers_map_[key] = value;
 }
 
+std::string parse_data(const std::map<std::string, std::string> &datas) {
+    std::string result;
+    for (auto& pair : datas) {
+        result = result + pair.first + "=" + pair.second + "&";
+    }
+    if (!result.empty()) {
+        result.erase(result.length() - 1, 1);
+    }
+    return result;
+}
+
 std::string HttpMessage::to_string() const {
     return "";
 }

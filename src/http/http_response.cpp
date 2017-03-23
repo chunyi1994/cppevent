@@ -50,30 +50,24 @@ void HttpResponse::set_status_line(const std::string &version,
     status_ = status;
 }
 
+//usage: set_cookie().key("key1").value("value222");
+CookieBuilder HttpResponse::set_cookie() {
+    return CookieBuilder(*this);
+}
+
 std::string HttpResponse::to_string() const {
     std::string line = version_ + " " + utils::to_string(status_code_) + " " + status_ + "\r\n";
-
     std::string ret(line);
-
     for(const auto &w : headers_map_){
         line = w.first + ": " + w.second + "\r\n";
         ret.append(line);
     }
-
     for(const auto& w : cookies_) {
         line = "Set-Cookie: " + w.to_string() + "\r\n";
         ret.append(line);
     }
     ret.append("\r\n");
     return ret;
-}
-
-void HttpResponse::set_cookie(std::string key,
-                              std::string value,
-                              std::string path,
-                              std::string domain,
-                              std::string expires) {
-    cookies_.push_back(Cookie(key,value, path ,domain, expires));
 }
 
 std::string HttpResponse::status_str() const {
@@ -92,10 +86,17 @@ int HttpResponse::status_code() const
 
 HttpResponse default_response() {
         HttpResponse response;
-        response.set_status_line("HTTP/1.1", 200, "OK");
+        response.set_version("HTTP/1.1");
         response["Server"] = "Cppevent Server 1.0";
         response["Content-Type"] = "text/html";
         return response;
+}
+
+HttpResponse ok_response() {
+    HttpResponse response =  default_response();
+    response.set_status("OK");
+    response.set_status_code(200);
+    return response;
 }
 
 HttpResponse bad_request() {
@@ -110,5 +111,25 @@ HttpResponse not_found() {
     return response;
 }
 
+std::string content_type(const std::string &path) {
+    size_t dot_pos = path.find(".");
+    if(dot_pos == std::string::npos){
+        return "text/html";
+    }
+    std::string ext = path.substr(dot_pos, 4);
+    if (ext == ".png") {
+        return "image/png";
+    } else if (ext == ".css") {
+        return "text/css";
+    } else if (ext == ".jpg") {
+        return "image/jpeg";
+    } else if (ext == ".gif") {
+        return "image/gif";
+    }  else if (ext == ".htm") {
+        return "text/html";
+    }  else {
+        return "text/html";
+    }
+}
 }//namespace
 }//namespace

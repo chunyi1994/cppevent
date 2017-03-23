@@ -54,27 +54,29 @@ void HttpRequest::parse(const std::string &content) {
     version_ = line.substr(left, pos - left);
 
     HttpMessage::parse(content);
-
-    if(method_ == "POST") {
-        size_t pos = content.find("\r\n\r\n");
-        if (pos != std::string::npos) {
-            std::string data = content.substr(pos + 4, content.length() - pos - 4);
-            raw_data_ = std::move(data);
-        }
-    }
-
-    if (method_ == "GET") {
-        size_t pos = path_.find("?");
-        if(pos != std::string::npos) {
-            raw_data_ = path_.substr(pos + 1, path_.length() - pos - 1);
-            path_ = path_.substr(0, pos);
-        }
+    parse_cookie();
+    pos = content.find("\r\n\r\n");
+    if (pos != std::string::npos && pos + 4 < content.length()) {
+        std::string data = content.substr(pos + 4, content.length() - pos - 4);
+        raw_data_ = std::move(data);
     }
 }
 
 void HttpRequest::parse_data() {
-    //parse post 或者get的data
-    std::vector<std::string> vec = utils::split(raw_data_, '&');
+    std::string datas;
+    if (method_ == "POST" && header("Content-Type") == "application/x-www-form-urlencoded") {
+        datas = raw_data_;
+    } else if (method_ == "GET") {
+        std::size_t pos = path_.find("?");
+        if (pos == std::string::npos || pos == path_.length() - 1) {
+            return;
+        }
+        datas = path_.substr(pos + 1, path_.length() - (pos + 1));
+    } else {
+        return;
+    }
+
+    std::vector<std::string> vec = utils::split(datas, '&');
     for (const auto& str : vec) {
         size_t pos = str.find("=");
         if(pos == std::string::npos) {
@@ -87,8 +89,8 @@ void HttpRequest::parse_data() {
 }
 
 void HttpRequest::set_request_line(const std::string &method,
-                                 const std::string &path,
-                                 const std::string &version) {
+                                   const std::string &path,
+                                   const std::string &version) {
     method_ = method;
     path_ = path;
     version_ = version;
@@ -106,8 +108,7 @@ std::string HttpRequest::version() const {
     return version_;
 }
 
-std::string HttpRequest::form(const std::string &key) const
-{
+std::string HttpRequest::form(const std::string &key) const {
     auto iter = datas_map_.find(key);
     if (iter != datas_map_.end()) {
         return iter->second;
@@ -135,9 +136,9 @@ void HttpRequest::set_data(const std::string &key, const std::string &value)
 
 std::string HttpRequest::to_string() const {
     std::string path = path_;
-    if (method_ == "GET" && !raw_data_.empty()) {
-        path = path_ + "?" + raw_data_;
-    }
+    //    if (method_ == "GET" && !raw_data_.empty()) {
+    //        path = path_ + "?" + raw_data_;
+    //    }
     std::string line = method_ + " " + path + " " + version_ + "\r\n";
     std::string msg(line);
 
@@ -145,7 +146,7 @@ std::string HttpRequest::to_string() const {
         line = pair.first + ": " + pair.second + "\r\n";
         msg.append(line);
     }
-    //todo 可能没写对
+    //todo 需要加强
     if (!cookies_map_.empty()) {
         msg.append("Cookie: ");
         for (const auto& pair : cookies_map_) {
@@ -162,20 +163,21 @@ std::string HttpRequest::to_string() const {
 void HttpRequest::parse_cookie() {
     //parse cookies
     std::string cookie = headers_map_["Cookie"];
-    if (!cookie.empty())  {
-        std::vector<std::string> cookies_vec = utils::split(cookie, ';');
-        for(const auto& cookie_str : cookies_vec) {
-            size_t pos = cookie_str.find("=");
-            if(pos == std::string::npos) {
-                continue;
-            }
-            std::string key = cookie_str.substr(0, pos);
-            std::string value = cookie_str.substr(pos + 1, cookie_str.length() - pos - 1);
-            utils::trim(key);
-            utils::trim(value);
-            utils::trim_quo(value);
-            cookies_map_[key] = value;
+    if (cookie.empty())  {
+        return;
+    }
+    std::vector<std::string> cookies_vec = utils::split(cookie, ';');
+    for(const auto& cookie_str : cookies_vec) {
+        size_t pos = cookie_str.find("=");
+        if(pos == std::string::npos) {
+            continue;
         }
+        std::string key = cookie_str.substr(0, pos);
+        std::string value = cookie_str.substr(pos + 1, cookie_str.length() - pos - 1);
+        utils::trim(key);
+        utils::trim(value);
+        utils::trim_quo(value);
+        cookies_map_[key] = value;
     }
 }
 
@@ -190,6 +192,22 @@ const std::string &HttpRequest::raw_data() const {
 
 void HttpRequest::append_raw_data(const std::string &msg) {
     raw_data_+=msg;
+}
+
+HttpRequest default_request() {
+    HttpRequest request;
+    default_request(request);
+    return request;
+}
+
+void default_request(HttpRequest &request) {
+    request["Accept"] = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8";
+    request["Accept-Language"] = "zh-CN,zh;q=0.8";
+    request["Cache-Control"] = "0";
+    request["Connection"] = "close";
+    request["Content-Length"] = "0";
+    request.set_version("HTTP/1.1");
+    request["User-Agent"] = "Mozilla/5.0 (X11; Linux i686) AppleWebKit/537.36 (KHTML, like Gecko) Ubuntu Chromium/51.0.2704.79 Chrome/51.0.2704.79 Safari/537.36";
 }
 
 }//namespace
