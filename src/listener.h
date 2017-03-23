@@ -14,7 +14,7 @@ public:
 public:
     Listener(EventLoop *loop, std::size_t port);
     ~Listener();
-    void set_new_connection_callback(const NewConnectionCallback &cb);
+    void on_connection(const NewConnectionCallback &cb);
     void listen();
 
 private:

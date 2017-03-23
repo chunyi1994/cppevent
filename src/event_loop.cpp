@@ -58,10 +58,10 @@ void EventLoop::update_event(Event *event) {
     poller_->update_event(event);
 }
 
-void EventLoop::run_every(const Time& interval, const TimeEvent::TimeCallback &cb) {
+void EventLoop::run_every(const Time& interval, TimeEvent::TimeCallback cb) {
     TimeEvent::Pointer event = TimeEvent::create(TimeEvent::eALWAYS);
     event->set_interval(interval);
-    event->set_time_callback(cb);
+    event->set_time_callback(std::move(cb));
     add_time_event(event);
 }
 
@@ -104,6 +104,7 @@ void EventLoop::execute_time_task() {
             return;
         }
         time_queue_.pop();
+        event->set_execute_times(event->execute_times() + 1);
         event->execute_callback();
         if (event->type() == TimeEvent::eALWAYS) {
             event->update_next_time();

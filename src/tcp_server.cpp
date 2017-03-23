@@ -10,18 +10,36 @@ TcpServer::TcpServer(EventLoop *loop, std::size_t port):
     port_(port),
     listener_(loop, port),
     connections_(),
-    buf_(1024*2)
+    buf_(1024*2),
+    create_time_(),
+    heartbeat_time_()
 {
-    listener_.set_new_connection_callback([this](Connection::Pointer conn) {
+    create_time_.now();
+    listener_.on_connection([this](Connection::Pointer conn) {
+        if (heartbeat_time_.sec() != 0) {
+            ConnectionHolder::Pointer conn_holder = ConnectionHolder::create(conn);
+            heartbeat_pool_.back().insert(conn_holder);
+            ConnectionHolder::WeakPointer weak(conn_holder);
+            conn->set_context(weak);
+        }
         connections_.insert(conn);
-        conn->read(Buffer(buf_), [this](const net::Connection::Pointer& c, net::Buffer buffer, std::size_t bytes) {
+        conn->on_read( [this](net::Connection::Pointer c) {
+            if (heartbeat_time_.sec() != 0) {
+                Any any = c->get_context();
+                assert(any.type() == typeid(ConnectionHolder::WeakPointer));
+                auto weak = any_cast<ConnectionHolder::WeakPointer>(any);
+                ConnectionHolder::Pointer holder = weak.lock();
+                if (holder) {
+                    heartbeat_pool_.back().insert(holder);
+                }
+            }
             if (message_callback_) {
-                message_callback_(c, buffer, bytes);
+                message_callback_(c);
             }
         });
-        conn->set_close_callback([this] (net::Connection::Pointer c) {
-            if (connection_callback_) {
-                connection_callback_(c);
+        conn->on_close([this] (net::Connection::Pointer c) {
+            if (close_callback_) {
+                close_callback_(c);
             }
             loop_->add_task([this, c]() {
                 auto iter = connections_.find(c);
@@ -29,13 +47,12 @@ TcpServer::TcpServer(EventLoop *loop, std::size_t port):
                 connections_.erase(iter);
             });
         });
-
-        conn->set_error_callback([this](net::Connection::Pointer c) {
+        conn->on_error([this](net::Connection::Pointer c,
+                       const ErrorCode& code) {
             if (error_callback_) {
-                error_callback_(c);
+                error_callback_(c, code);
             }
         });
-
         if (connection_callback_) {
             connection_callback_(conn);
         }
@@ -51,12 +68,16 @@ void TcpServer::start() {
     listener_.listen();
 }
 
-void TcpServer::set_message_callback(const MessageCallback &cb) {
+void TcpServer::on_message(const MessageCallback &cb) {
     message_callback_ = cb;
 }
 
-void TcpServer::set_error_callback(const ErrorCallback &cb) {
+void TcpServer::on_error(const ErrorCallback &cb) {
     error_callback_ = cb;
+}
+
+void TcpServer::on_close(const TcpServer::CloseCallback &cb) {
+    close_callback_ = cb;
 }
 
 void TcpServer::shutdown(Connection::Pointer conn) {
@@ -67,7 +88,27 @@ void TcpServer::shutdown(Connection::Pointer conn) {
     }
 }
 
-void TcpServer::set_connection_callback(const ConnectionCallback &cb) {
+time_t TcpServer::worked_time() const {
+    Time now;
+    now.now();
+    return now.sec() - create_time_.sec();
+}
+
+void TcpServer::set_heartbeat_time(time_t sec) {
+    heartbeat_pool_ = RingList<std::set<
+            ConnectionHolder::Pointer>>((std::size_t)sec);
+    heartbeat_time_.set_sec(sec);
+    enable_clean_useless_conn();
+}
+
+void TcpServer::enable_clean_useless_conn() {
+    loop_->run_every(Time(1), [this] (TimeEvent::Pointer) {
+        heartbeat_pool_.front().clear();
+        heartbeat_pool_.next();
+    });
+}
+
+void TcpServer::on_connection(const ConnectionCallback &cb) {
     connection_callback_ = cb;
 }
 

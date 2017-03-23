@@ -29,7 +29,6 @@ public:
         return std::make_shared<TimeEvent>(time, type);
     }
 
-
     void execute_callback();
     const Time& time() const;
     TimeEventType type() const;
@@ -39,12 +38,15 @@ public:
     void set_interval(const Time& time);
     void set_time_callback(const TimeCallback& cb);
     void update_next_time();
+    void set_execute_times(int times) { executes_times_ = times; }
+    int execute_times  () const {  return executes_times_; }
 
 private:
     Time time_;
     Time interval_;
     TimeCallback time_callback_;
     TimeEventType type_;
+    int executes_times_;
 };
 
 class TimeEventCompare

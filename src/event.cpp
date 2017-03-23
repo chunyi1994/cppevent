@@ -1,5 +1,6 @@
 #include "event.h"
 #include "event_loop.h"
+#include "logging/logger.h"
 namespace net {
 
 
@@ -54,18 +55,22 @@ void Event::handle_event() {
 
     if(revents_ & EPOLLRDHUP && close_callback_) {
         //当对方close套接字的时候,会调用这里
+        LOG_DEBUG<<"EPOLLRDHUP";
         close_callback_();
     }
 
     if(revents_ & EPOLLIN && read_callback_) {
+        LOG_DEBUG<<"EPOLLIN";
         read_callback_();
     }
 
     if(revents_ & EPOLLOUT && write_callback_) {
+        LOG_DEBUG<<"EPOLLOUT";
         write_callback_();
     }
 
     if(revents_ & EPOLLERR && error_callback_) {
+        LOG_DEBUG<<"EPOLLERR";
         error_callback_();
     }
 }

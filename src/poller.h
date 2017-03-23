@@ -15,6 +15,7 @@ public:
     void add_event(Event *event);
     void update_event(Event *event);
     int wait(std::vector<Event*>* active_events);
+    void set_interval(int interval) { interval_ = interval; }
 
 private:
     void ctl(int fd, uint32_t events, int op);
@@ -26,6 +27,7 @@ private:
     Socket epoll_socket_;
     std::vector<epoll_event> events_;
     std::map<int, Event*> events_map_;
+    int interval_;
 };
 
 } //namespace

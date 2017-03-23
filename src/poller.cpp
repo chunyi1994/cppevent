@@ -10,7 +10,8 @@ const int MAX_EPOLL_NUM = 20;
 Poller::Poller()  :
     epoll_socket_(::epoll_create(MAX_EPOLL_NUM)),
     events_(MAX_EPOLL_NUM),
-    events_map_()
+    events_map_(),
+    interval_(500)
 {
 
 }
@@ -36,7 +37,7 @@ void Poller::update_event(Event *event)
 
 int Poller::wait(std::vector<Event *> *active_events) {
     int events_num = ::epoll_wait(epoll_socket_.fd(),
-                                    &*events_.begin(), MAX_EPOLL_NUM, 500); //500应该是毫秒
+                                    &*events_.begin(), MAX_EPOLL_NUM, interval_); //500应该是毫秒
     if (events_num < 0) {
         return events_num;
     }

@@ -3,12 +3,18 @@
 namespace net {
 
 TimeEvent::TimeEvent(TimeEventType type) :
-    time_() , interval_(), type_(type)
+    time_() ,
+    interval_(),
+    type_(type),
+    executes_times_(0)
 {
 }
 
 TimeEvent::TimeEvent(const Time &time, TimeEventType type) :
-    time_(time) , interval_(), type_(type)
+    time_(time) ,
+    interval_(),
+    type_(type),
+    executes_times_(0)
 {
 }
 

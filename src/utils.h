@@ -4,94 +4,66 @@
 #include <unistd.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 #include <map>
 #include <functional>
 #include <string>
 #include <sstream>
+#include <arpa/inet.h>
+#include <iostream>
 #include "connection.h"
 #include "coroutine/coroutine.h"
 namespace utils {
 
-//协程函数：至少读n个数据再返回
-//net::Connection::Pointer conn,
-//net::Buffer buffer,
-//std::size_t n,
-//coroutine::Coroutine* co
-static std::size_t read_at_least(net::Connection::Pointer conn,
-                                 net::Buffer buffer,
-                                 std::size_t n,
-                                 coroutine::Coroutine* co) {
-    bool lock = false;
-    //由于协程的一个特性，这里用指针
-    //具体原因我猜想是，当协程调用yield的时候，会保存现场，nread保存为0
-    //之后lambda修改了nread，但是当协程回到原处的时候，会把之前保存的nread恢复
-    //解决办法是采用指针，指向栈上的空间。
-    std::size_t* nread = new std::size_t(0);
-    assert(n <= buffer.size());
-    while ( *nread < n
-            && conn->status() == net::Connection::eCONNECTING) {
-        if (lock) {
-            co->yield();
+//大小端转换
+static uint32_t host_to_network_32(uint32_t hostlong) {
+    return ::htonl(hostlong);
+}
+
+static uint16_t host_to_network_16(uint16_t hostshort) {
+    return ::htons(hostshort);
+}
+
+static uint32_t network_to_host_32(uint32_t netlong) {
+    return ::ntohl(netlong);
+}
+
+static uint16_t network_to_host_16(uint16_t netshort) {
+    return ::ntohs(netshort);
+}
+
+static bool has_prefix(const std::string& src, const std::string& dest) {
+    if (dest.length() > src.length()) {
+        return false;
+    }
+    if (src.substr(0, dest.length()) == dest) {
+        return true;
+    }
+    return false;
+}
+
+static bool is_digit_16(const std::string& str) {
+    if (str.empty()) return false;
+    for (auto c : str) {
+        if ((c >= '0' && c <= '9')
+                || (c >= 'a' && c <= 'f')
+                || (c >= 'A' && c <= 'F')) {
+
+            continue;
+        } else {
+            return false;
         }
-        net::Buffer buf(buffer.data() + *nread, buffer.size() - *nread);
-        conn->read_once(buf,  [nread](const net::Connection::Pointer&,
-                        net::Buffer,
-                        std::size_t bytes) {
-            *nread += bytes;
-        });
-        lock = true;
     }
-    std::size_t result = *nread;
-    delete nread;
-    return result;
+    return true;
 }
 
-
-//协程函数：至少读n个数据再返回
-//net::Connection::Pointer conn,
-//net::Buffer buffer,
-//std::size_t n,
-//coroutine::Coroutine* co
-static std::size_t read_once(net::Connection::Pointer conn,
-                             net::Buffer buffer,
-                             coroutine::Coroutine* co) {
-    bool *lock = new bool(true);
-    std::size_t* nread = new std::size_t(0);
-    conn->read_once(buffer,  [lock, nread](const net::Connection::Pointer&,
-                    net::Buffer,
-                    std::size_t bytes) {
-        *nread += bytes;
-        *lock = false;
-    });
-    while (*lock && conn->status() == net::Connection::eCONNECTING) {
-        co->yield();
+static bool is_digit(const std::string& str) {
+    for (auto c : str) {
+        if (c > '9' || c < '0') {
+            return false;
+        }
     }
-    std::size_t result = *nread;
-    delete nread;
-    delete lock;
-    return result;
-}
-
-//把用于socket设置为非阻塞方式
-static void setnonblocking(int sockfd) {
-    int opts;
-    opts = fcntl(sockfd, F_GETFL);
-    if (opts < 0) {
-        perror("fcntl(sock, GETFL)");
-        return;
-    }
-    opts = opts | O_NONBLOCK;
-    if (fcntl(sockfd, F_SETFL, opts) < 0) {
-        perror("fcntl(sock,SETFL,opts)");
-        return;
-    }
-}
-
-static int create_non_blocking_socket(){
-    int sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
-    //assert(socket > 0);
-    setnonblocking(sockfd);
-    return sockfd;
+    return true;
 }
 
 template<class T>
@@ -168,6 +140,28 @@ static std::vector<std::string> split2(const std::string& str, const std::string
     }
     return result;
 }
+
+
+static ssize_t file_size(const char *path) {
+    ssize_t fileSize = -1;
+    struct stat statBuff;
+    if(stat(path, &statBuff) >= 0) {
+        fileSize = statBuff.st_size;
+    }
+    return fileSize;
+}
+
+
+static int hex2int(const std::string& hexStr) {
+    char *offset;
+    if(hexStr.length() > 2) {
+       if(hexStr[0] == '0' && hexStr[1] == 'x')  {
+            return ::strtol(hexStr.c_str(), &offset, 0);
+       }
+    }
+    return ::strtol(hexStr.c_str(), &offset, 16);
+}
+
 
 } // namespace
 #endif // UTILS

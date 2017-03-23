@@ -7,6 +7,9 @@
 #include "tcp_address.h"
 #include "socket.h"
 #include "buffer.h"
+#include "timer.h"
+#include "error_code.h"
+#include "any.h"
 namespace net {
 class EventLoop;
 class Connection : public std::enable_shared_from_this <Connection>
@@ -15,36 +18,54 @@ public:
     enum Status {
         eCONNECTING,
         eCLOSE,
+        eERROR,
+        eDELETED,
         eSIZE
     };
 public:
     typedef std::shared_ptr<Connection> Pointer;
     typedef std::shared_ptr<const Connection> ConstPointer;
+    typedef std::weak_ptr<Connection> WeakPointer;
 
-    typedef std::function<void(const Pointer &, Buffer ,std::size_t)> MessageCallback;
-    typedef std::function<void(const Pointer &)> ErrorCallback;
+    typedef std::function<void(const Pointer &)> MessageCallback;
+    typedef std::function<void(const Pointer &, const ErrorCode&)> ErrorCallback;
     typedef std::function<void(const Pointer &)> CloseCallback;
-public:
 
+public:
     Connection(EventLoop *loop, int fd);
     ~Connection();
     static Pointer create(EventLoop *loop, int fd) {
         return std::make_shared<Connection>(loop, fd);
     }
-   // void set_message_callback(const MessageCallback &cb);
-    void set_close_callback(const CloseCallback &cb);
-    void set_error_callback(const ErrorCallback &cb);
-    void set_write_callback(const MessageCallback& cb);
+    void on_close(const CloseCallback &cb);
+    void on_error(const ErrorCallback &cb);
+    void on_write(const MessageCallback& cb);
+    void on_read(const MessageCallback& cb);
+
     void set_address(const TcpAddress& addr) { peer_ = addr; }
+    TcpAddress address() const { return peer_; }
+
     void set_status(Status status) { status_ = status; }
     void shutdown();
-    void read_once(Buffer buffer, const MessageCallback& cb);
-    void read(Buffer buffer, const MessageCallback& cb);
-
-    int fd() const { return connfd_.fd(); }
-    Status status() const { return status_; }
+    //void read_once(Buffer buffer, const MessageCallback& cb);
     void send(const std::string& msg) const;
     void send(const char* msg, std::size_t n) const;
+    int fd() const { return connfd_.fd(); }
+    Status status() const { return status_; }
+    Time last_active_time() const { return last_active_time_; }
+    Time create_time() const { return create_time_; }
+    time_t alive_time () const;
+    const RingBuffer& buf() const { return recv_buffer_; }
+
+    template <class T>
+    void set_context(const T& t) { context_ = t; }
+
+
+    Any get_context() const {
+        return context_;
+    }
+
+    const std::type_info& context_type() const { return context_.type(); }
 
 private:
     void handle_close();
@@ -52,26 +73,39 @@ private:
     void handle_write();
     void handle_error();
 
-    //std::string read(size_t len);
-    //std::string read_all();
-    //bool readline(std::string& line);
-    //bool  readline(std::string &str, char br);
-    //std::size_t read_size() const;
-    //void send(const std::string& msg);
-    //void set_connection_status(bool);
-    //const TcpAddress& address() const;
-    //void set_address(const TcpAddress& addr);
 private:
     Socket connfd_;
-    Event event_;
+    mutable Event event_;
     Status status_;
     TcpAddress peer_;
-    Buffer buffer_;
     bool read_once_;
     MessageCallback message_callback_;
     MessageCallback write_callback_;
     ErrorCallback error_callback_;
     CloseCallback close_callback_;
+    Time create_time_;
+    Time last_active_time_;
+    mutable RingBuffer send_buffer_;
+    mutable RingBuffer recv_buffer_;
+    Any context_;
+};
+
+class ConnectionHolder {
+public:
+    typedef std::shared_ptr<ConnectionHolder> Pointer;
+    typedef std::weak_ptr<ConnectionHolder> WeakPointer;
+    static Pointer create(Connection::Pointer p) {
+        return std::make_shared<ConnectionHolder>(p);
+    }
+    explicit ConnectionHolder(Connection::Pointer p) : ptr(p) {}
+    ~ConnectionHolder() {
+        Connection::Pointer conn = ptr.lock();
+        if (conn) {
+            conn->shutdown();
+        }
+    }
+private:
+    Connection::WeakPointer ptr;
 };
 
 } //namespace

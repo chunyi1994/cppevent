@@ -22,8 +22,19 @@ public:
     void update();
     void enable_reading() { events_ |=   EPOLLIN;  update(); }
     void enable_writing() { events_ |=   EPOLLOUT; update();  }
+    void enable_closing() { events_ |=   EPOLLRDHUP; update(); }
+    void disable_closing() { events_ &=  !EPOLLRDHUP; update();  }
+    void enable_error() { events_ |=   EPOLLERR; update(); }
+    void disable_error() { events_ &=  !EPOLLERR; update();  }
     void disable_reading() { events_ &=  !EPOLLIN; update();  }
     void disable_writing() { events_ &=   !EPOLLOUT; update();  }
+    void disable_all() {
+        events_ &= !EPOLLOUT;
+        events_ &= !EPOLLIN;
+        events_ &= !EPOLLRDHUP;
+        events_ &= !EPOLLERR;
+        update();
+    }
 
 private:
     EventLoop* loop_;

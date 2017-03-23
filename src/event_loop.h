@@ -28,7 +28,7 @@ public:
     void quit();
     void add_task(const TaskFunction& task);
     void update_event(Event* event);
-    void run_every(const Time& interval, const TimeEvent::TimeCallback& cb);
+    void run_every(const Time& interval, TimeEvent::TimeCallback cb);
     void run_at(const Time& time, const TimeEvent::TimeCallback& cb);
     void run_after(const Time& time, const TimeEvent::TimeCallback& cb);
     coroutine::Coroutine::Pointer start_coroutine(const coroutine::Schedule::Function &func);

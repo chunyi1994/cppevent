@@ -28,8 +28,10 @@ SOURCES += main.cpp \
     http/http_message.cpp \
     http/http_request.cpp \
     http/http_response.cpp \
-    http/http_server.cpp \
-    http/http_handler.cpp
+    http/http_server2.cpp \
+    http/response_writer.cpp \
+    monitor/monitor_server.cpp \
+    slice.cpp
 
 HEADERS += \
     event_loop.h \
@@ -65,9 +67,18 @@ HEADERS += \
     http/http_request.h \
     test/test_http_message.h \
     http/http_response.h \
-    http/http_connection.h \
-    http/http_server.h \
-    http/http_handler.h \
     test/test_utils.h \
-    test/test_http_server.h
+    test/test_http_server.h \
+    http/http_urllib.h \
+    test/test_http_urllib.h \
+    http/http_server2.h \
+    error_code.h \
+    http/http_connection.h \
+    http/response_writer.h \
+    monitor/monitor_server.h \
+    test/test_monitor.h \
+    slice.h \
+    heartbeat.h \
+    ring_list.h \
+    any.h
 

@@ -1,9 +1,11 @@
 #include "listener.h"
 #include <sys/epoll.h>
 #include <arpa/inet.h>
+#include <string.h>
+#include <errno.h>
+#include <stdio.h>
 #include "event.h"
 #include "event_loop.h"
-#include "string.h"
 #include "utils.h"
 #include "logging/logger.h"
 #include "tcp_address.h"
@@ -13,7 +15,7 @@ const int LISTENQ = 10;
 Listener::Listener(EventLoop* loop, std::size_t port) :
     loop_(loop),
     port_(port) ,
-    listen_socket_(utils::create_non_blocking_socket()),
+    listen_socket_(create_non_blocking_socket()),
     event_(new Event(loop, listen_socket_, EPOLLIN | EPOLLET ))
 {
     event_->set_read_callback([this]() {
@@ -21,16 +23,16 @@ Listener::Listener(EventLoop* loop, std::size_t port) :
         size_t clilen = sizeof(clientaddr);
         memset(&clientaddr, 0, sizeof(struct sockaddr_in));
         int connfd = ::accept(listen_socket_, (sockaddr *) &clientaddr, &clilen);
-        if (connfd < 0){
-            LOG_DEBUG<<"accept error";
+        if (connfd < 0) {
+            LOG_DEBUG<<"accept error:" <<::strerror(errno);
+            return;
         }
-
         net::TcpAddress tcp_addr(::inet_ntoa(clientaddr.sin_addr), ::ntohs(clientaddr.sin_port));
-        utils::setnonblocking(connfd);
+        setnonblocking(connfd);
         Connection::Pointer conn = Connection::create(loop_, connfd);
         conn->set_status(Connection::eCONNECTING);
         conn->set_address(tcp_addr);
-        if (connection_callback_){
+        if (connection_callback_) {
             connection_callback_(conn);
         }
     });
@@ -42,7 +44,7 @@ Listener::~Listener() {
     delete event_;
 }
 
-void Listener::set_new_connection_callback(const NewConnectionCallback &cb) {
+void Listener::on_connection(const NewConnectionCallback &cb) {
     connection_callback_ = cb;
 }
 
@@ -50,19 +52,20 @@ void Listener::listen()
 {
     int ret;
     sockaddr_in serveraddr;
-    memset(&serveraddr, 0, sizeof(sockaddr_in));
+    ::memset(&serveraddr, 0, sizeof(sockaddr_in));
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_addr.s_addr = INADDR_ANY; //服务器IP地址--允许连接到所有本地地址上
     serveraddr.sin_port = htons(port_); //或者htons(SERV_PORT);
-
+    int on = 1;
+    ret = ::setsockopt(listen_socket_, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on) );
     ret = ::bind(listen_socket_, (sockaddr *) &serveraddr, sizeof(serveraddr));
     if (ret < 0) {
-        LOG_DEBUG<<"bind error";
+        LOG_DEBUG<<"bind error:" <<::strerror(errno);
         return;
     }
     ret = ::listen(listen_socket_, LISTENQ);
     if (ret < 0){
-        LOG_DEBUG<<"listen error";
+        LOG_DEBUG<<"listen error"<<::strerror(errno);
         return;
     }
 }
