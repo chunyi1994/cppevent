@@ -9,7 +9,7 @@ namespace test {
 static void test_tcp_server() {
     net::EventLoop loop;
     net::TcpServer server(&loop, 23333);
-    server.on_connection([](const net::Connection::ConstPointer& conn) {
+    server.on_connection([](const net::Connection::Pointer& conn) {
         EXCEPT_TRUE(conn->status() == net::Connection::eCONNECTING);
     });
 
@@ -17,11 +17,11 @@ static void test_tcp_server() {
         EXCEPT_TRUE(conn->status() == net::Connection::eCLOSE);
     });
 
-    server.on_error([](const net::Connection::ConstPointer&, const net::ErrorCode&) {
+    server.on_error([](const net::Connection::Pointer&, const net::ErrorCode&) {
         DEBUG_INFO<<" error";
     });
 
-    server.on_message([](const net::Connection::ConstPointer& conn) {
+    server.on_message([](const net::Connection::Pointer& conn) {
         std::string recv = conn->buf().read_all();
         conn->send(recv);
     });

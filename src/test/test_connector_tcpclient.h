@@ -23,7 +23,7 @@ static void start_server(net::TcpServer& server) {
         DEBUG_INFO<<" error";
     });
 
-    server.on_message([](const net::Connection::ConstPointer& conn) {
+    server.on_message([](const net::Connection::Pointer& conn) {
         std::string recv = conn->buf().read_all();
         DEBUG_INFO<<"server recv:"<<recv;
         conn->send("hello client!");
@@ -32,23 +32,23 @@ static void start_server(net::TcpServer& server) {
     server.start();
 }
 
-static void test_tcpclient() {
-    net::EventLoop loop;
-    net::TcpServer server(&loop, 23333);
-    start_server(server);
-    net::TcpClient client(&loop);
- //   std::vector<char> buffer(1024);
-//    int err = client.connect("127.0.0.1", 23333, [&buffer](net::Connection::Pointer conn) {
-//            conn->send("hello server!");
-//            conn->on_read(net::Buffer(buffer), [](const net::Connection::Pointer &, net::Buffer buffer,std::size_t bytes) {
-//                std::string recv(buffer.data(), bytes);
-//                DEBUG_INFO<<"!!!!!connector conn recv:"<<recv;
-//                EXCEPT_EQ(recv, "hello client!");
-//            });
-//    });
-    //EXCEPT_TRUE(err >= 0);
-    loop.loop();
-}
+//static void test_tcpclient() {
+//    net::EventLoop loop;
+//    net::TcpServer server(&loop, 23333);
+//    start_server(server);
+//    net::TcpClient client(&loop);
+// //   std::vector<char> buffer(1024);
+////    int err = client.connect("127.0.0.1", 23333, [&buffer](net::Connection::Pointer conn) {
+////            conn->send("hello server!");
+////            conn->on_read(net::Buffer(buffer), [](const net::Connection::Pointer &, net::Buffer buffer,std::size_t bytes) {
+////                std::string recv(buffer.data(), bytes);
+////                DEBUG_INFO<<"!!!!!connector conn recv:"<<recv;
+////                EXCEPT_EQ(recv, "hello client!");
+////            });
+////    });
+//    //EXCEPT_TRUE(err >= 0);
+//    loop.loop();
+//}
 
 //阻塞式
 static void test_connector() {
