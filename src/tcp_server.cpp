@@ -24,6 +24,7 @@ TcpServer::TcpServer(EventLoop *loop, std::size_t port):
         }
         connections_.insert(conn);
         conn->on_read( [this](net::Connection::Pointer c) {
+            //如果有设定心跳时间，就把他加入队列尾巴。队列头的连接会被shutdown
             if (heartbeat_time_.sec() != 0) {
                 Any any = c->get_context();
                 assert(any.type() == typeid(ConnectionHolder::WeakPointer));
@@ -52,7 +53,10 @@ TcpServer::TcpServer(EventLoop *loop, std::size_t port):
             if (error_callback_) {
                 error_callback_(c, code);
             }
+            c->shutdown();
         });
+        //lock the connection, then user cannot edit its callbacks
+        conn->set_lock(true);
         if (connection_callback_) {
             connection_callback_(conn);
         }
@@ -84,7 +88,7 @@ void TcpServer::shutdown(Connection::Pointer conn) {
     auto iter = connections_.find(conn);
     if (iter != connections_.end()) {
         conn->shutdown();
-        connections_.erase(conn);
+        //connections_.erase(conn);
     }
 }
 

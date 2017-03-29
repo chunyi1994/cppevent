@@ -17,7 +17,9 @@ public:
     void set_close_callback(const EventCallback &cb);
     int fd() const;
     void set_fd(int fd);
+    //关注活动的事件
     uint32_t events() const;
+    //当前活动的事件
     void set_revents(uint32_t ev);
     void update();
     void enable_reading() { events_ |=   EPOLLIN;  update(); }

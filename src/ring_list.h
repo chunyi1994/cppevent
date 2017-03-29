@@ -74,7 +74,7 @@ public:
     typedef const Iterator ConstIterator;
     typedef T& Reference;
 public:
-    RingList(std::size_t size = 2) : vec_(size) , front_(begin()) , back_(begin()){
+    explicit RingList(std::size_t size = 2) : vec_(size) , front_(begin()) , back_(begin()){
         back_.iter_ += size - 1;
     }
 

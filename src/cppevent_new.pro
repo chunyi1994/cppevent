@@ -31,7 +31,8 @@ SOURCES += main.cpp \
     http/http_server2.cpp \
     http/response_writer.cpp \
     monitor/monitor_server.cpp \
-    slice.cpp
+    slice.cpp \
+    http/http_client.cpp
 
 HEADERS += \
     event_loop.h \
@@ -80,5 +81,9 @@ HEADERS += \
     slice.h \
     heartbeat.h \
     ring_list.h \
-    any.h
+    any.h \
+    monitor/cpuinfo.inc \
+    monitor/status.inc \
+    http/http_client.h \
+    test/test_tcpclient.h
 

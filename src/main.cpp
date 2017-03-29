@@ -40,11 +40,11 @@ void example() {
 
 
 
-       server.on_error([](const net::Connection::ConstPointer&, net::ErrorCode) {
+       server.on_error([](const net::Connection::Pointer&, net::ErrorCode) {
            DEBUG_INFO<<" error";
        });
 
-       server.on_message([](const net::Connection::ConstPointer& conn) {
+       server.on_message([](const net::Connection::Pointer& conn) {
            std::string recv = conn->buf().read_all();
            conn->send(recv);
        });

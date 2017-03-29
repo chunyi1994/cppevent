@@ -40,7 +40,7 @@ void Connector::connect(
             ErrorCode code(eOK, "connect success");
             cb(conn, code);
         } else {
-            if (event->execute_times() < 10) {
+            if (event->execute_times() < 3) {
                 return;
             }
             cb(nullptr, result.first);

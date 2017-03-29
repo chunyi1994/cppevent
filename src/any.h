@@ -42,7 +42,6 @@ public:
         other.holder_ = nullptr;
     }
 
-
     ~Any() {
         if (holder_) {
             delete holder_;

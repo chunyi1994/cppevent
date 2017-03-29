@@ -18,8 +18,8 @@ public:
     };
 public:
 
-    TimeEvent(TimeEventType type = eONCE);
-    TimeEvent(const Time& time, TimeEventType type = eONCE);
+    explicit TimeEvent(TimeEventType type = eONCE);
+    explicit TimeEvent(const Time& time, TimeEventType type = eONCE);
 
     static Pointer create(TimeEventType type = eONCE) {
         return std::make_shared<TimeEvent>(type);

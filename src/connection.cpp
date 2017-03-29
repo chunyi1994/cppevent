@@ -17,7 +17,8 @@ Connection::Connection(EventLoop *loop, int fd) :
     last_active_time_(),
     send_buffer_(),
     recv_buffer_(),
-    context_()
+    context_(),
+    callback_lock_(false)
 {
     create_time_.now();
     loop->add_event(&event_);
@@ -31,45 +32,46 @@ Connection::~Connection() {
     LOG_TRACE<<"~Connection";
 }
 
-//void Connection::read_once(Buffer buffer, const Connection::MessageCallback &cb) {
-//    buffer_ = buffer;
-//    message_callback_ = cb;
-//    read_once_ = true;
-//    event_.enable_reading();
-//}
-
+//todo 被锁住了应该加提示
 void Connection::on_read(const Connection::MessageCallback &cb) {
-    //buffer_ = buffer;
+    if (callback_lock_) {
+        return;
+    }
     message_callback_ = cb;
-    //read_once_ = false;
     event_.enable_reading();
 }
 
-//void Connection::set_message_callback(const Connection::MessageCallback &cb) {
-//    message_callback_ = cb;
-//}
-
 void Connection::on_close(const Connection::CloseCallback &cb) {
+    if (callback_lock_) {
+        return;
+    }
     close_callback_ = cb;
 }
 
 void Connection::on_error(const Connection::ErrorCallback &cb) {
+    if (callback_lock_) {
+        return;
+    }
     error_callback_ = cb;
 }
 
 void Connection::on_write(const Connection::MessageCallback &cb) {
+    if (callback_lock_) {
+        return;
+    }
     message_callback_ = cb;
 }
+
 
 void Connection::shutdown() {
     handle_close();
 }
 
-void Connection::send(const std::string &msg) const {
+void Connection::send(const std::string &msg) {
     send(msg.data(), msg.length());
 }
 
-void Connection::send(const char *msg, std::size_t len) const {
+void Connection::send(const char *msg, std::size_t len) {
     if (!send_buffer_.empty()) {
         send_buffer_.append(msg, len);
         return;

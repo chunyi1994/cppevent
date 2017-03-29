@@ -42,10 +42,11 @@ private:
     std::size_t size_;
 };
 
-
+//RingBuffer 是一个环形缓存，可以从后面append（添加）数据，
+// 也可以从头部read（读取）数据
 class RingBuffer {
 public:
-    RingBuffer(std::size_t size = 1024) :
+    explicit RingBuffer(std::size_t size = 1024) :
         data_(size), write_index_(0), read_index_(0) {}
     std::size_t capacity() const { return data_.size(); }
 
@@ -61,9 +62,9 @@ public:
 
     void clear();
 
-    std::string read(std::size_t len) const;
+    std::string read(std::size_t len);
 
-    std::string read_all() const { return read(size()); }
+    std::string read_all()  { return read(size()); }
 
     Slice slice(std::size_t len) const;
 
@@ -78,6 +79,7 @@ private:
 
     std::size_t writeable_size() const { return data_.size() - write_index_; }
 
+private:
     std::vector<char> data_;
     std::size_t write_index_;
     mutable std::size_t read_index_;
@@ -104,7 +106,7 @@ inline void RingBuffer::clear() {
     data_[0] = '\0';
 }
 
-inline std::string RingBuffer::read(std::size_t len) const {
+inline std::string RingBuffer::read(std::size_t len) {
     len = std::min(size(), len);
     std::string ret(read_ptr(), len);
     read_index_ += len;
@@ -121,9 +123,6 @@ inline Slice RingBuffer::slice(std::size_t len) const {
 inline std::size_t RingBuffer::erase(std::size_t len) {
     len = std::min(size(), len);
     read_index_ += len;
-    if (size() == 0) {
-        clear();
-    }
     return len;
 }
 

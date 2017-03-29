@@ -10,22 +10,32 @@ namespace net {
 
 class TcpServer {
 public:
-    typedef std::function<void(const Connection::ConstPointer&)> ConnectionCallback;
-    typedef std::function<void(const Connection::ConstPointer &)> MessageCallback;
+    typedef std::function<void(const Connection::Pointer&)> ConnectionCallback;
+    typedef std::function<void(const Connection::Pointer &)> MessageCallback;
     typedef Connection::ErrorCallback ErrorCallback;
     typedef Connection::CloseCallback CloseCallback;
 public:
     TcpServer(EventLoop *loop, std::size_t port);
     ~TcpServer();
     void start();
+
+    //消息，连接， 错误， 关闭 的回调设置
     void on_message(const MessageCallback &cb);
     void on_connection(const  ConnectionCallback& cb);
     void on_error(const ErrorCallback& cb);
     void on_close(const CloseCallback& cb);
+
+    //关闭连接, 会引起回调on_close
     void shutdown(Connection::Pointer conn);
+
+    //运行时长
     time_t worked_time() const;
+
+    //连接个数
     std::size_t size() const { return connections_.size(); }
+    //监听端口
     std::size_t port() const { return port_; }
+    //设置心跳时间
     void set_heartbeat_time(time_t sec);
 
 private:
@@ -43,8 +53,6 @@ private:
     ConnectionCallback connection_callback_;
     ErrorCallback error_callback_;
     CloseCallback close_callback_;
-
-
 };
 
 } // namespace
