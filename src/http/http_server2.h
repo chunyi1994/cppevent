@@ -26,20 +26,26 @@ public:
     const TcpServer* server() const { return &server_; }
 private:
     void on_recv_header(HttpConnection::Pointer httpconn);
-    void on_recv_data(HttpConnection::Pointer httpconn);
+    void on_recv_body(HttpConnection::Pointer httpconn);
 
     void handle_request(HttpConnection::Pointer httpconn);
     void handle_404(HttpConnection::Pointer httpconn);
     void handle_bad_request(HttpConnection::Pointer httpconn);
     void handle_static_file(HttpConnection::Pointer);
 
-    void remove(Connection::ConstPointer conn);
+    void remove(const Connection::Pointer &conn);
     void remove(HttpConnection::Pointer httpconn);
 private:
     EventLoop* loop_;
     std::size_t port_;
     TcpServer server_;
-    std::map<Connection::ConstPointer, HttpConnection::Pointer> conns_;
+
+    std::map<
+        Connection::WeakPointer,
+        HttpConnection::Pointer,
+        std::owner_less<Connection::WeakPointer>
+    > conns_;
+
     std::vector<char> buf_;
     std::map<std::string, HandleCallback> get_callbacks_;
     std::map<std::string, HandleCallback> post_callbacks_;

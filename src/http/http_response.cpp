@@ -8,6 +8,7 @@ HttpResponse::HttpResponse() :
     cookies_(),
     version_(),
     status_(),
+    body_(),
     status_code_(0)
 {
 

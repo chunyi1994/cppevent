@@ -24,30 +24,30 @@ HttpServer2::HttpServer2(EventLoop* loop, std::size_t port):
         LOG_DEBUG<<"sigpipe";
     });
 
-    server_.on_connection([this] (const Connection::ConstPointer& conn) {
+    server_.on_connection([this] (const Connection::Pointer& conn) {
         conns_[conn] = HttpConnection::create(conn);
     });
 
-    server_.on_error([this] (const Connection::ConstPointer& conn, const net::ErrorCode& code) {
+    server_.on_error([this] (const Connection::Pointer& conn, const net::ErrorCode& code) {
         LOG_DEBUG<<"on error:"<< code.msg();
         remove(conn);
     });
 
-    server_.on_message([this] (const net::Connection::ConstPointer& c) {
+    server_.on_message([this] (const Connection::Pointer& c) {
         HttpConnection::Pointer conn = conns_[c];
         int state = conn->state;
         switch (state) {
         case eRECV_HEADER:
             on_recv_header(conn);
             break;
-        case eRECV_DATA:
-            on_recv_data(conn);
+        case eRECV_BODY:
+            on_recv_body(conn);
             break;
         default:
             break;
         }
     });
-    server_.on_close([this] (const Connection::ConstPointer& conn) {
+    server_.on_close([this] (const Connection::Pointer& conn) {
         remove(conn);
     });
 
@@ -66,7 +66,7 @@ void HttpServer2::on_post(const std::string &path, const HttpServer2::HandleCall
     post_callbacks_[path] = cb;
 }
 
-void HttpServer2::remove(Connection::ConstPointer conn) {
+void HttpServer2::remove(const Connection::Pointer& conn) {
     auto iter = conns_.find(conn);
     if (iter == conns_.end()) {
         return;
@@ -78,17 +78,19 @@ void HttpServer2::remove(HttpConnection::Pointer httpconn) {
     if (httpconn->state == HttpState::eDELETED) {
         return;
     }
-    auto conn = httpconn->conn;
-    loop_->add_task([this, conn] () {
-        auto iter = conns_.find(conn);
-        assert(iter != conns_.end());
-        conns_.erase(iter);
-    });
+    auto conn = httpconn->conn.lock();
+    if (!conn) {
+        return;
+    }
+
+    auto iter = conns_.find(conn);
+    assert(iter != conns_.end());
+    conns_.erase(iter);
     httpconn->state = HttpState::eDELETED;
 }
 
 void HttpServer2::on_recv_header(HttpConnection::Pointer httpconn) {
-    auto& buf = httpconn->conn->buf();
+    auto& buf = httpconn->buf();
     std::size_t pos = buf.find("\r\n\r\n");
     if (pos == std::string::npos) {
         return;
@@ -96,11 +98,11 @@ void HttpServer2::on_recv_header(HttpConnection::Pointer httpconn) {
     std::string header = buf.read(pos + 4);
     //httpconn->buf.erase(0, pos + 4);
     httpconn->request.parse(header);
-    httpconn->state = eRECV_DATA;
-    on_recv_data(httpconn);
+    httpconn->state = eRECV_BODY;
+    on_recv_body(httpconn);
 }
 
-void HttpServer2::on_recv_data(HttpConnection::Pointer httpconn) {
+void HttpServer2::on_recv_body(HttpConnection::Pointer httpconn) {
     //todo 没考虑chunked
     int len ;
     if (httpconn->request["Transfer-Encoding"] == "chunked") {
@@ -117,14 +119,14 @@ void HttpServer2::on_recv_data(HttpConnection::Pointer httpconn) {
             return;
         }
     }
-    const RingBuffer& buf = httpconn->conn->buf();
+    RingBuffer& buf = httpconn->buf();
     int left_bytes = len - static_cast<int>(buf.size());
     if (left_bytes > 0) {
         return;
     }
     std::string content = buf.read(len);
     // httpconn->buf.erase(0, content.length());
-    httpconn->request.append_raw_data(content);
+    httpconn->request.append_body(content);
     httpconn->state = eRECV_HEADER;
     handle_request(httpconn);
     if (!buf.empty()) {

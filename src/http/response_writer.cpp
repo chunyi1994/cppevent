@@ -25,7 +25,7 @@ void ResponseWriter::write(const std::string &msg) {
     stream_.write(msg.data(), msg.length());
 }
 
-void ResponseWriter::wirite(const char *msg, std::size_t n) {
+void ResponseWriter::write(const char *msg, std::size_t n) {
     stream_.write(msg, n);
 }
 

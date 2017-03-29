@@ -119,7 +119,7 @@ static HttpResultType request_server(
     request["Host"] = name;
 
 
-    request["Content-Length"] = utils::to_string(request.raw_data().length());
+    request["Content-Length"] = utils::to_string(request.body().length());
     //发送request报文
     std::string str = request.to_string();
     LOG_DEBUG<<str;
@@ -129,8 +129,8 @@ static HttpResultType request_server(
     }
 
 
-    if (request.method() == "POST" && !request.raw_data().empty()) {
-        str = request.raw_data();
+    if (request.method() == "POST" && !request.body().empty()) {
+        str = request.body();
         err = send(s, Buffer(str));
         LOG_DEBUG<<str;
         if (err < 0) {
@@ -184,7 +184,7 @@ static HttpResultType handle_chunked(
             LOG_DEBUG<<"chunked error";
             return eRESPONSE_ERROR;
         }
-        response->append_data(content.substr(pos + 2, len));
+        response->append_body(content.substr(pos + 2, len));
         content.erase(0, len + need_read.length() + 2 + 2);
     } // while()
     return eOK;
@@ -204,7 +204,7 @@ static HttpResultType handle_content_length(
         LOG_DEBUG<<"err";
         return eREAD_ERROR;
     }
-    response->append_data(content);
+    response->append_body(content);
     return eOK;
 }
 
@@ -243,7 +243,7 @@ urlopen(std::string url,
         if (is_redirect(response->status_code())) {
             redirect_times --;
             url = response->header("Location");
-            request.set_raw_data("");
+            request.set_body("");
             request.set_method("GET");
         }
     } while (is_redirect(response->status_code()) && redirect_times > 0);
@@ -252,7 +252,7 @@ urlopen(std::string url,
         LOG_DEBUG<<"too many redirect";
         return std::make_pair(eTOO_MANY_REDIRECT, response);
     }
-    LOG_DEBUG<<response->data();
+    LOG_DEBUG<<response->body();
     return std::make_pair(eOK, response);
 }
 
@@ -277,7 +277,7 @@ post(const std::string& url,
     default_request(request);
     std::string data = parse_data(datas);
     request.set_method("POST");
-    request.set_raw_data(data);
+    request.set_body(data);
     if (!data.empty()) {
         request["Content-Type"] = "application/x-www-form-urlencoded";
     }

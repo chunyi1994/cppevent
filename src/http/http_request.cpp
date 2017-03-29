@@ -8,7 +8,7 @@ HttpRequest::HttpRequest() :
     path_(),
     version_(),
     method_(""),
-    raw_data_(),
+    body_(),
     datas_map_(),
     cookies_map_()
 {}
@@ -58,14 +58,14 @@ void HttpRequest::parse(const std::string &content) {
     pos = content.find("\r\n\r\n");
     if (pos != std::string::npos && pos + 4 < content.length()) {
         std::string data = content.substr(pos + 4, content.length() - pos - 4);
-        raw_data_ = std::move(data);
+        body_ = std::move(data);
     }
 }
 
 void HttpRequest::parse_data() {
     std::string datas;
     if (method_ == "POST" && header("Content-Type") == "application/x-www-form-urlencoded") {
-        datas = raw_data_;
+        datas = body_;
     } else if (method_ == "GET") {
         std::size_t pos = path_.find("?");
         if (pos == std::string::npos || pos == path_.length() - 1) {
@@ -136,8 +136,8 @@ void HttpRequest::set_data(const std::string &key, const std::string &value)
 
 std::string HttpRequest::to_string() const {
     std::string path = path_;
-    //    if (method_ == "GET" && !raw_data_.empty()) {
-    //        path = path_ + "?" + raw_data_;
+    //    if (method_ == "GET" && !body_.empty()) {
+    //        path = path_ + "?" + body_;
     //    }
     std::string line = method_ + " " + path + " " + version_ + "\r\n";
     std::string msg(line);
@@ -179,19 +179,6 @@ void HttpRequest::parse_cookie() {
         utils::trim_quo(value);
         cookies_map_[key] = value;
     }
-}
-
-void HttpRequest::set_raw_data(std::string data) {
-    raw_data_ = std::move(data);
-}
-
-
-const std::string &HttpRequest::raw_data() const {
-    return raw_data_;
-}
-
-void HttpRequest::append_raw_data(const std::string &msg) {
-    raw_data_+=msg;
 }
 
 HttpRequest default_request() {

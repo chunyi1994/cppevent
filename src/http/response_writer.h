@@ -12,7 +12,7 @@ public:
     ResponseWriter(HttpConnection::Pointer conn, HttpResponse response);
     ~ResponseWriter();
     void write(const std::string& msg);
-    void wirite(const char* msg, std::size_t n);
+    void write(const char* msg, std::size_t n);
     void set_header(const std::string& key, const std::string& value);
     CookieBuilder set_cookie();
     void redirect(const std::string& location);

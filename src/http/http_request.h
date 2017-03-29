@@ -10,7 +10,6 @@ public:
     void parse(const std::string &content);
     void parse_data();  //框架不会主动 这个，需要用户自行调用
 
-    void set_raw_data(std::string data);
     void set_request_line(const std::string& method, const std::string& path, const std::string& version);
     void set_method(const std::string& method) { method_ = method; }
     void set_path(const std::string& path) { path_ = path; }
@@ -27,8 +26,10 @@ public:
 
 
     std::string to_string() const;
-    const std::string& raw_data() const;
-    void append_raw_data(const std::string& msg);
+
+    const std::string& body() const { return body_; }
+    void append_body(const std::string& msg) { body_.append(msg); }
+    void set_body(const std::string& body) { body_ = body; }
 
 private:
     void parse_cookie();
@@ -37,7 +38,7 @@ private:
     std::string path_;
     std::string version_;
     std::string method_;
-    std::string raw_data_;
+    std::string body_;
     std::map<std::string, std::string> datas_map_;
     std::map<std::string, std::string> cookies_map_;
 };

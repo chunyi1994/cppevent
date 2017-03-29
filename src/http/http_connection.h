@@ -8,32 +8,59 @@ namespace net {
 namespace http {
 enum HttpState{
     eRECV_HEADER,
-    eRECV_DATA,
+    eRECV_BODY,
     eDELETED,
 };
 class HttpServer2;
 struct HttpConnection {
     typedef std::shared_ptr<HttpConnection> Pointer;
 
-    static Pointer create(const Connection::ConstPointer& c) {
+    static Pointer create(const Connection::Pointer& c) {
         return std::make_shared<HttpConnection>(c);
     }
 
-    HttpConnection(const Connection::ConstPointer& c) :
-        conn(c) , buf(), state(eRECV_HEADER), request() , err(eOK){}
+    explicit HttpConnection(const Connection::Pointer& c) :
+        conn(c), state(eRECV_HEADER), request() , response(), err(eOK) , url(){}
 
     //void shutdown() { conn->shutdown(); }
 
-    void send(const std::string& msg) { conn->send(msg.data(), msg.length()); }
-    void send(const char* msg, std::size_t len) { conn->send(msg, len); }
-
+    void send(const std::string& msg) ;
+    void send(const char* msg, std::size_t len);
+    RingBuffer& buf() ;
+    const RingBuffer& buf() const ;
 public:
-    Connection::ConstPointer conn;
-    std::string buf;
+    Connection::WeakPointer conn;
     int state;
     HttpRequest request;
+    HttpResponse response;
     int err;
+    std::string url;
+    Any context;
 };
+
+inline void HttpConnection::send(const std::string &msg) {
+    Connection::Pointer connptr = conn.lock();
+    assert(connptr);
+    connptr->send(msg.data(), msg.length());
+}
+
+inline void HttpConnection::send(const char *msg, std::size_t len) {
+    Connection::Pointer connptr = conn.lock();
+    assert(connptr);
+    connptr->send(msg, len);
+}
+
+inline RingBuffer &HttpConnection::buf() {
+    Connection::Pointer connptr = conn.lock();
+    assert(connptr);
+    return connptr->buf();
+}
+
+inline const RingBuffer &HttpConnection::buf() const {
+    Connection::Pointer connptr = conn.lock();
+    assert(connptr);
+    return connptr->buf();
+}
 
 }//naemspace
 }//namespace

@@ -37,9 +37,9 @@ public:
     int status_code() const;
     std::string to_string() const;
 
-    std::string data() const { return data_; }
-    void set_data(const std::string& data) { data_ = data;  }
-    void append_data(const std::string& data) { data_.append(data); }
+    std::string body() const { return body_; }
+    void set_body(const std::string& body) { body_ = body;  }
+    void append_body(const std::string& data) { body_.append(data); }
     bool empty() const { return status_code_ == 0; }
     //operator bool() const { return status_code_ != 0; }
 
@@ -47,7 +47,7 @@ private:
     std::vector<Cookie> cookies_;
     std::string version_;
     std::string status_;
-    std::string data_;
+    std::string body_;
     int status_code_;
 };
 
