@@ -85,5 +85,7 @@ HEADERS += \
     monitor/cpuinfo.inc \
     monitor/status.inc \
     http/http_client.h \
-    test/test_tcpclient.h
+    test/test_tcpclient.h \
+    examples/socks5_server.h \
+    coroutine/co_io_utils.h
 

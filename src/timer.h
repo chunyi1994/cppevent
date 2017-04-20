@@ -11,6 +11,7 @@ class Time
 public:
     explicit Time(const timeval& tv);
     explicit Time(time_t sec = 0, time_t usec = 0);
+
     bool operator==(const Time& other) const;
     bool operator>(const Time& other) const;
     bool operator<(const Time& other) const;  //有bug

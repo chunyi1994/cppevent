@@ -4,14 +4,13 @@
 #include <algorithm>
 namespace net {
 
-const int MAX_EPOLL_NUM = 20;
+const int kMAX_EPOLL_NUM = 65535;
 
 
 Poller::Poller()  :
-    epoll_socket_(::epoll_create(MAX_EPOLL_NUM)),
-    events_(MAX_EPOLL_NUM),
-    events_map_(),
-    interval_(500) //500应该是毫秒
+    epoll_socket_(::epoll_create(kMAX_EPOLL_NUM)),
+    events_(kMAX_EPOLL_NUM),
+    events_map_()
 {
 
 }
@@ -28,6 +27,14 @@ void Poller::add_event(Event *event)
     events_map_[event->fd()] = event;
 }
 
+void Poller::delete_event(Event *event) {
+    assert(event);
+    auto iter = events_map_.find(event->fd());
+    assert(iter != events_map_.end());
+    events_map_.erase(iter);
+    del(event->fd(), event->events());
+}
+
 void Poller::update_event(Event *event)
 {
     assert(event);
@@ -35,10 +42,10 @@ void Poller::update_event(Event *event)
     events_map_[event->fd()] = event;
 }
 
-int Poller::wait(std::vector<Event *> *active_events) {
+int Poller::wait(std::vector<Event *> *active_events, int interval) {
     int events_num = ::epoll_wait(epoll_socket_.fd(),
                                     &*events_.begin(),
-                                  MAX_EPOLL_NUM, interval_);
+                                  kMAX_EPOLL_NUM, interval);
     if (events_num < 0) {
         return events_num;
     }
@@ -73,7 +80,7 @@ void Poller::del(int fd, uint32_t events) {
 }
 
 struct epoll_event& Poller::get_event(std::size_t i) {
-    assert(i < MAX_EPOLL_NUM);
+    assert(i < kMAX_EPOLL_NUM);
     return events_[i];
 }
 

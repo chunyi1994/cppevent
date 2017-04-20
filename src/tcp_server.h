@@ -6,6 +6,7 @@
 #include "listener.h"
 #include "timer.h"
 #include "ring_list.h"
+#include "event_loop.h"
 namespace net {
 
 class TcpServer {
@@ -38,21 +39,53 @@ public:
     //设置心跳时间
     void set_heartbeat_time(time_t sec);
 
+    //发生错误的总计
+    uint64_t error_nums() const { return error_nums_; }
+
+    std::string info() const;
+
 private:
     void enable_clean_useless_conn();
+
+    void hanlde_close(Connection::Pointer conn);
+
+    void process_heartbeats(Connection::Pointer conn);
+
+    void init_heartsbeats(Connection::Pointer conn);
+
+private:
+    TcpServer& operator=(const TcpServer&) = delete;
+
+    TcpServer(const TcpServer&) = delete;
+
+    TcpServer(TcpServer&&) = delete;
+
 private:
     EventLoop *loop_;
+
     std::size_t port_;
+
     Listener listener_;
+
     std::set<Connection::Pointer> connections_;    //<fd, Connection::Pointer>
+
     std::vector<char> buf_;
+
     Time create_time_;
+
     Time heartbeat_time_;
+
     RingList<std::set<ConnectionHolder::Pointer>> heartbeat_pool_;
+
     MessageCallback message_callback_;
+
     ConnectionCallback connection_callback_;
+
     ErrorCallback error_callback_;
+
     CloseCallback close_callback_;
+
+    uint64_t error_nums_;
 };
 
 } // namespace

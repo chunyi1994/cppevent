@@ -10,6 +10,10 @@ Event::Event(EventLoop *loop, int fd, uint32_t event):
 
 }
 
+Event::~Event() {
+    loop_->delete_event(this);
+}
+
 
 uint32_t Event::events() const {
     return events_;
@@ -49,18 +53,8 @@ void Event::set_fd(int fd) {
 
 
 void Event::handle_event() {
-//    if(revents_ & EPOLLHUP && close_callback_){
-//        close_callback_();
-//    }
-
-    if(revents_ & EPOLLRDHUP && close_callback_) {
-        //当对方close套接字的时候,会调用这里
-        LOG_DEBUG<<"EPOLLRDHUP";
-        close_callback_();
-    }
-
     if(revents_ & EPOLLIN && read_callback_) {
-        LOG_DEBUG<<"EPOLLIN";
+       // LOG_DEBUG<<"EPOLLIN";
         read_callback_();
     }
 
@@ -72,6 +66,12 @@ void Event::handle_event() {
     if(revents_ & EPOLLERR && error_callback_) {
         LOG_DEBUG<<"EPOLLERR";
         error_callback_();
+    }
+
+    if(revents_ & EPOLLRDHUP && close_callback_) {
+        //当对方close套接字的时候,会调用这里
+        LOG_DEBUG<<"EPOLLRDHUP";
+        close_callback_();
     }
 }
 

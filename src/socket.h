@@ -12,7 +12,48 @@
 #include "logging/logger.h"
 #include "error_code.h"
 #include "slice.h"
+#include "utils.h"
 namespace net {
+
+//raii
+class Socket {
+public:
+    typedef std::shared_ptr<Socket> Pointer;
+public:
+    Socket(int fd) : fd_(fd) { }
+
+    Socket() : fd_(-1) { }
+
+    ~Socket() ;
+
+    static Pointer create(int fd) { return std::make_shared<Socket>(fd); }
+
+    void set_fd(int fd) ;
+
+    int fd() const { return fd_; }
+
+private:
+    //nocopyable
+    Socket& operator=(const Socket&) = delete;
+    Socket(const Socket&) = delete;
+    Socket(Socket&&) = delete;
+
+private:
+    int fd_;
+};
+
+inline Socket::~Socket() {
+    if (fd_ >= 0) {
+        ::close(fd_);
+    }
+}
+
+inline void Socket::set_fd(int fd) {
+    if (fd_ >= 0) {
+        ::close(fd_);
+    }
+    fd_ = fd;
+}
 
 //把用于socket设置为非阻塞方式
 static void setnonblocking(int sockfd) {
@@ -29,65 +70,69 @@ static void setnonblocking(int sockfd) {
     }
 }
 
-static int create_non_blocking_socket(){
+inline int create_non_blocking_socket(){
     int sockfd = ::socket(AF_INET, SOCK_STREAM, 0);
     //assert(socket > 0);
     setnonblocking(sockfd);
     return sockfd;
 }
 
-//raii
-class Socket {
-public:
-    typedef std::shared_ptr<Socket> Pointer;
-public:
-    Socket(int fd) : fd_(fd) { }
-    Socket() : fd_(-1) { }
-    ~Socket() {
-        if (fd_ >= 0) {
-            ::close(fd_);
-        }
-    }
-
-    static Pointer create(int fd) { return std::make_shared<Socket>(fd); }
-
-    void set_fd(int fd) {
-        if (fd_ >= 0) {
-            ::close(fd_);
-        }
-        fd_ = fd;
-    }
-
-    int fd() const { return fd_; }
-
-private:
-    int fd_;
-};
-
-//todo 更多的错误处理
-static int read(int fd, char* buf, int size) {
+inline std::pair<ErrorCode, int> read_some(int fd, char* buf, int len) {
     int nread = 0;
     int n = 0;
-    std::string errstr;
+    ErrorCode err(ErrorCode::eOK, "read success");
     while(1){
-        n = ::read(fd, buf + nread, size - nread);
-        buf[n] = '\0';
-        if (n < 0) {
-            n = 0;
-            if (errno != EAGAIN){
-                errstr = ::strerror(errno);
-                LOG_DEBUG<<errstr;
+        n = ::read(fd, buf + nread, len - nread);
+        if (n <= 0) {
+            if (errno == EAGAIN){
+                err.set_code(ErrorCode::eOK);
+                err.set_msg("eagain");
+            } else {
+                err.set_code(ErrorCode::eUNKNOWN);
+                err.set_errno(errno);
             }
-            break;
-        } else if (n == 0 && errno != EINTR){
             break;
         }
         nread += n;
-        if (nread == size) {
+        if (nread == len) {
             break;
         }
     }
-    return nread;
+    return std::make_pair(err, nread);
+}
+
+static std::pair<ErrorCode, int> connect_blocking_helper(
+        int sockfd, sockaddr_in& server_addr ) {
+    int  status = ::connect(sockfd, (sockaddr*)&server_addr, sizeof(server_addr) );
+    if( status == -1 ) {
+        ErrorCode err(errno);
+        LOG_DEBUG<<"connect error:"<<err.msg();
+        err.set_code(ErrorCode::eCONNECT_ERR);
+        ::close(sockfd);
+        return std::make_pair(err, -1);;
+    }
+    ErrorCode ok(ErrorCode::eOK, "connect succeed");
+    return std::make_pair(ok, sockfd);
+}
+
+static std::pair<ErrorCode, int> connect_nonblocking_helper(
+        int sockfd, sockaddr_in& server_addr ) {
+    setnonblocking(sockfd);
+    int status = ::connect(sockfd, (sockaddr*)&server_addr, sizeof(server_addr) );
+    if (status < 0 && errno != EINPROGRESS) {
+        ErrorCode conn_err(errno);
+        conn_err.set_code(ErrorCode::eCONNECT_ERR);
+        LOG_DEBUG<<"Connect error:"<<conn_err.msg();
+        std::make_pair(conn_err, -1);
+    }
+    if (status == 0) {
+        std::string errstr = "Connect succeed";
+        return std::make_pair(ErrorCode(ErrorCode::eOK, errstr), sockfd);
+    }
+    ErrorCode wait_err;
+    wait_err.set_code(ErrorCode::eCONNECT_IN_PROGRESS);
+    wait_err.set_msg("Operation now in progress");
+    return std::make_pair(wait_err, sockfd);
 }
 
 const int kBLOCKING_CONNECT = 0;
@@ -97,43 +142,38 @@ static std::pair<ErrorCode, int> connect_helper(
         const std::string &ip,
         int port,
         int blocking = kBLOCKING_CONNECT) {
-    int sockfd, status, save_errno;
+    int sockfd, status;
     struct sockaddr_in server_addr;
     ::memset(&server_addr, 0, sizeof(server_addr) );
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(port);
     status = ::inet_aton(ip.c_str(), &server_addr.sin_addr);
-    std::string errstr;
     if( status == 0 )  {
         //the server_ip is not valid value
-        //errno = EINVAL;
-        errstr = ::strerror(errno);
-        LOG_DEBUG<<"inet_aton error:" << errstr;
-        return std::make_pair(ErrorCode(eINET_ERR, errstr), -1);
+        ErrorCode inet_err(errno);
+        inet_err.set_code(ErrorCode::eINET_ERR);
+        LOG_DEBUG<<"inet_aton error:" << inet_err.msg();
+        return std::make_pair(inet_err, -1);
     }
     //socket出来的值是一次性的
     sockfd = ::socket(PF_INET, SOCK_STREAM, 0);
-    if( sockfd == -1 ){
-        errstr = ::strerror(errno);
-        LOG_DEBUG<<"socket error"<<errstr;
-        return std::make_pair(ErrorCode(eSOCKET_ERR, errstr), -1);
+    if ( sockfd == -1 ) {
+        ErrorCode socket_err(errno);
+        socket_err.set_code(ErrorCode::eSOCKET_ERR);
+        LOG_DEBUG<<"socket error"<<socket_err.msg();
+        return std::make_pair(socket_err, -1);
     }
     if (blocking == kNON_BLOCKING_CONNECT) {
-        setnonblocking(sockfd);
+        //非阻塞
+        return connect_nonblocking_helper(sockfd, server_addr);
+    } else {
+        //阻塞
+        return connect_blocking_helper(sockfd, server_addr);
     }
-    status = ::connect(sockfd, (sockaddr*)&server_addr, sizeof(server_addr) );
-    if( status == -1 ) {
-        save_errno = errno;
-        errstr = ::strerror(errno);
-        LOG_DEBUG<<"connect error:"<<errstr;
-        ::close(sockfd);
-        errno = save_errno; //the close may be error
-        return std::make_pair(ErrorCode(eCONNECT_ERR, errstr), -1);;
-    }
-    return std::make_pair(ErrorCode(eOK, "connect succeed"), sockfd);
 }
 
-static int send(int fd, const char* buf, std::size_t len) {
+
+inline int send(int fd, const char* buf, std::size_t len) {
     std::size_t wirten = 0;
     int n = 0;
     while (wirten < len){
@@ -150,23 +190,44 @@ static int send(int fd, const char* buf, std::size_t len) {
     return wirten;
 }
 
-
-static int send_some(int fd, const Slice& slice) {
-    return ::write(fd,  slice.data(), slice.size());
+inline std::pair<ErrorCode, int>
+send_some(int fd, const char* buf, std::size_t len) {
+    int nsend = 0;
+    int n = 0;
+    ErrorCode err(ErrorCode::eOK, "send success");
+    while(1){
+        n = ::write(fd, buf + nsend, len - nsend);
+        if (n <= 0) {
+            if (errno == EAGAIN){
+                err.set_code(ErrorCode::eOK);
+                err.set_msg("eagain");
+            } else {
+                err.set_code(ErrorCode::eUNKNOWN);
+                err.set_errno(errno);
+            }
+            break;
+        }
+        nsend += n;
+        if (static_cast<std::size_t>(nsend) == len) {
+            break;
+        }
+    }
+    return std::make_pair(err, nsend);
 }
 
-static int send_some(int fd, const char* buf, std::size_t len) {
-    return ::write(fd,  buf, len);
+inline std::pair<ErrorCode, int>
+send_some(int fd, const Slice& slice) {
+    return send_some(fd,  slice.data(), slice.size());
 }
 
-static int send(const Socket& socket, Buffer buffer) {
+inline int send(const Socket& socket, Buffer buffer) {
     if (!buffer.data()) {
         return -1;
     }
     return send(socket.fd(), buffer.data(), buffer.size());
 }
 
-static int read(const Socket& socket, Buffer buffer) {
+inline int read(const Socket& socket, Buffer buffer) {
     if (!buffer.data()) {
         return -1;
     }
@@ -233,15 +294,17 @@ static int read_at_least(const Socket& s,  std::string& str, std::size_t read_le
 
 
 //todo
-static ErrorCode connect(Socket& socket, const std::string &ip, std::size_t port) {
+inline ErrorCode connect(Socket& socket, const std::string &ip, std::size_t port) {
     auto result =  connect_helper(ip, port);
-    if (result.first.code() != eOK) {
+    if (result.first.code() != ErrorCode::eOK) {
         return result.first;
     }
     int fd = result.second;
     socket.set_fd(fd);
     return result.first;
 }
+
+
 
 }//namespace
 #endif // SOCKET

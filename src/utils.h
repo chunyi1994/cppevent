@@ -6,13 +6,11 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <map>
-#include <functional>
+#include <vector>
 #include <string>
 #include <sstream>
 #include <arpa/inet.h>
 #include <iostream>
-#include "connection.h"
-#include "coroutine/coroutine.h"
 namespace utils {
 
 //大小端转换

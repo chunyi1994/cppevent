@@ -16,10 +16,6 @@ public:
         eNOLONGER,
         eSIZE
     };
-public:
-
-    explicit TimeEvent(TimeEventType type = eONCE);
-    explicit TimeEvent(const Time& time, TimeEventType type = eONCE);
 
     static Pointer create(TimeEventType type = eONCE) {
         return std::make_shared<TimeEvent>(type);
@@ -28,24 +24,49 @@ public:
     static Pointer create(const Time& time, TimeEventType type = eONCE) {
         return std::make_shared<TimeEvent>(time, type);
     }
+public:
+
+    explicit TimeEvent(TimeEventType type = eONCE);
+    explicit TimeEvent(const Time& time, TimeEventType type = eONCE);
 
     void execute_callback();
+
     const Time& time() const;
+
     TimeEventType type() const;
+
     void cancel();
+
     void set_type(TimeEventType type);
+
     void set_time(const Time& time);
+
     void set_interval(const Time& time);
+
     void set_time_callback(const TimeCallback& cb);
+
     void update_next_time();
+
     void set_execute_times(int times) { executes_times_ = times; }
+
     int execute_times  () const {  return executes_times_; }
 
 private:
+    TimeEvent& operator=(const TimeEvent&) = delete;
+
+    TimeEvent(const TimeEvent&) = delete;
+
+    TimeEvent(TimeEvent&&) = delete;
+
+private:
     Time time_;
+
     Time interval_;
+
     TimeCallback time_callback_;
+
     TimeEventType type_;
+
     int executes_times_;
 };
 

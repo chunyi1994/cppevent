@@ -46,8 +46,12 @@ private:
 // 也可以从头部read（读取）数据
 class RingBuffer {
 public:
+    typedef  std::vector<char>::iterator Iterator;
+    typedef  std::vector<char>::const_iterator ConstIterator;
+public:
     explicit RingBuffer(std::size_t size = 1024) :
         data_(size), write_index_(0), read_index_(0) {}
+
     std::size_t capacity() const { return data_.size(); }
 
     //void reserve(std::size_t size) {}
@@ -61,6 +65,9 @@ public:
     void append(const char* msg, std::size_t len);
 
     void clear();
+
+    ConstIterator begin() const { return data_.cbegin() + read_index_; }
+    ConstIterator end() const { return data_.cbegin() + read_index_ + size(); }
 
     std::string read(std::size_t len);
 
@@ -130,15 +137,15 @@ inline std::size_t RingBuffer::find(const std::string &target) const {
     if (target.empty() || empty()) {
         return std::string::npos;
     }
-    std::vector<char>::const_iterator iter = data_.cbegin();
-    while (iter != data_.cend()) {
-        if ((std::size_t)std::distance(iter, data_.cend()) < target.length()) {
+    ConstIterator start = begin();
+    while (start != end()) {
+        if ((std::size_t)std::distance(start, end()) < target.length()) {
             return std::string::npos;
         }
-        if (std::equal(target.cbegin(), target.cend(), iter)) {
-            return std::distance(data_.cbegin(), iter);
+        if (std::equal(target.cbegin(), target.cend(), start)) {
+            return std::distance(begin(), start);
         }
-        ++iter;
+        ++start;
     }
     return std::string::npos;
 }

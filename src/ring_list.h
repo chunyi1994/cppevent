@@ -9,10 +9,11 @@ class RingList;
 
 template<class T>
 class __RingListIteartor {
-    typedef T ValueType;
-    typedef T& Reference;
-    typedef T* Pointer;
-    typedef __RingListIteartor Self;
+    typedef                   T                 ValueType;
+    typedef                   T&              Reference;
+    typedef                   T*               Pointer;
+    typedef    __RingListIteartor    Self;
+
     friend class RingList<T>;
 public:
     __RingListIteartor() : begin_(nullptr), end_(nullptr), iter_(nullptr)  { }
@@ -70,9 +71,9 @@ private:
 template <class T>
 class RingList {
 public:
-    typedef __RingListIteartor<T> Iterator;
-    typedef const Iterator ConstIterator;
-    typedef T& Reference;
+    typedef                __RingListIteartor<T>              Iterator;
+    typedef                const Iterator                          ConstIterator;
+    typedef                T&                                             Reference;
 public:
     explicit RingList(std::size_t size = 2) : vec_(size) , front_(begin()) , back_(begin()){
         back_.iter_ += size - 1;

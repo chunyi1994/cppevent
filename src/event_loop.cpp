@@ -18,6 +18,7 @@ EventLoop::~EventLoop()
 {
 }
 
+const int kINTERVAL = 500;
 void EventLoop::loop() {
     //sigpipe
     Signal::signal(SIGPIPE, []() { LOG_DEBUG<<"sigpipe."; });
@@ -31,15 +32,23 @@ void EventLoop::loop() {
         execute_coroutines();
         active_events_.clear();
         //epoll的wait
-        poller_->wait(&active_events_);
+        poller_->wait(&active_events_, kINTERVAL);
         std::for_each(active_events_.begin(), active_events_.end(), [](Event *event){
             event->handle_event();
         });
     }
 }
 
+std::size_t EventLoop::epoll_event_nums() const {
+    return poller_->epoll_event_nums();
+}
+
 void EventLoop::add_event(Event *event) {
     poller_->add_event(event);
+}
+
+void EventLoop::delete_event(Event *event) {
+    poller_->delete_event(event);
 }
 
 void EventLoop::add_time_event(const TimeEvent::Pointer & event) {
@@ -87,12 +96,11 @@ coroutine::Coroutine::Pointer EventLoop::start_coroutine(const coroutine::Schedu
 }
 
 void EventLoop::execute_task() {
-    if (task_queue_.empty()) {
-        return;
+    while (!task_queue_.empty()) {
+        auto task = task_queue_.front();
+        task_queue_.pop();
+        task();
     }
-    auto task = task_queue_.front();
-    task_queue_.pop();
-    task();
 }
 
 void EventLoop::execute_time_task() {

@@ -16,14 +16,18 @@ class EventLoop
 public:
     typedef std::function<void()> TaskFunction;
     typedef std::priority_queue<
-          TimeEvent::Pointer, std::vector< TimeEvent::Pointer>, TimeEventCompare
+          TimeEvent::Pointer,
+          std::vector< TimeEvent::Pointer>,
+          TimeEventCompare
         > TimeQueue;
 
 public:
     EventLoop();
     ~EventLoop();
     void loop();
+    std::size_t epoll_event_nums() const ;
     void add_event(Event *event);
+    void delete_event(Event* event);
     void add_time_event(const TimeEvent::Pointer&);
     void quit();
     void add_task(const TaskFunction& task);
@@ -36,6 +40,12 @@ private:
     void execute_task();
     void execute_time_task();
     void execute_coroutines();
+
+private:
+    //nocopyable
+   EventLoop(EventLoop&&) = delete;
+   EventLoop& operator=(const EventLoop&) = delete;
+   EventLoop(const EventLoop&) = delete;
 private:
     bool quit_;
     std::vector<Event*> active_events_;

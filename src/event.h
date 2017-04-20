@@ -2,14 +2,24 @@
 #define EVENT_H
 #include <functional>
 #include <sys/epoll.h>
+#include <memory>
 namespace net {
 class EventLoop;
 class Event
 {
 public:
     typedef std::function<void()> EventCallback;
+    typedef std::shared_ptr<Event> Pointer;
+
+public:
+    static Pointer create(EventLoop* loop, int fd, uint32_t events) {
+        return std::make_shared<Event>(loop, fd, events);
+    }
+
 public:
     Event(EventLoop* loop, int fd, uint32_t events);
+    ~Event();
+
     void handle_event();
     void set_read_callback(const EventCallback &cb);
     void set_write_callback(const EventCallback &cb);
@@ -37,6 +47,12 @@ public:
         events_ &= !EPOLLERR;
         update();
     }
+
+private:
+     //nocopyable
+    Event(Event&&) = delete;
+    Event& operator=(const Event&) = delete;
+    Event(const Event&) = delete;
 
 private:
     EventLoop* loop_;

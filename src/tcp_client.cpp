@@ -5,9 +5,14 @@ namespace net {
 TcpClient::TcpClient(EventLoop *loop) :
     loop_(loop),
     conns_(),
+    //callbacks_(),
     connector_(loop),
     buf_(1024 * 2)
 {
+}
+
+Connection::Pointer TcpClient::connect(const TcpAddress &addr) {
+    return connector_.connect(addr);
 }
 
 void TcpClient::on_connect(
@@ -20,42 +25,31 @@ void TcpClient::on_connect(
 void TcpClient::on_connect(const TcpAddress &addr, TcpClient::ConnectionCallback cb) {
     connector_.connect(addr.ip, addr.port, [this, cb] (
                        Connection::Pointer conn, ErrorCode errcode) {
-        if (errcode.code() != eOK) {
+        if (errcode.code() != ErrorCode::eOK) {
             if (cb) {
                 cb(nullptr, errcode);
             }
             return;
         }
-        conns_[conn->address()] = conn;
+        conns_[conn->fd()] = conn;
+        conn->set_name("ClientConn");
         //读
         conn->on_read(message_callback_);
         //错误
         conn->on_error([this] (Connection::Pointer c, ErrorCode err) {
-            LOG_DEBUG<<"on error:"<<err.msg();
             if (error_callback_) {
                 error_callback_(c, err);
             }
-            c->shutdown();
         });
         //关闭连接
         conn->on_close([this] (Connection::Pointer c) {
             if (close_callback_) {
                 close_callback_(c);
             }
-            if (c->status() == Connection::eDELETED) {
-                return;
-            }
-            loop_->add_task([c, this]() {
-                auto iter = conns_.find(c->address());
-                if (iter != conns_.end()) {
-                    conns_.erase(iter);
-                }
-            });
-            c->set_status(Connection::eDELETED);
+            remove(c);
         });
         //锁住conn
         conn->set_lock(true);
-
         //connection callback
         if (cb) {
             cb(conn, errcode);
@@ -75,9 +69,23 @@ void TcpClient::on_error(const TcpClient::ErrorCallback &cb) {
     error_callback_ = cb;
 }
 
+void TcpClient::remove(Connection::Pointer c) {
+    loop_->add_task([c] () {});
+    auto iter = conns_.find(c->fd());
+    if (iter != conns_.end()) {
+        conns_.erase(iter);
+    }
+}
+
 //todo
 void TcpClient::shutdown() {
     //auto iter = conns_.find()
+}
+
+std::string TcpClient::info() const {
+    std::string info("TcpClient infomation:");
+    info = info + "[connections]: " + utils::to_string(size()) + ". ";
+    return info;
 }
 
 } //namespace

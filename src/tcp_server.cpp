@@ -12,57 +12,44 @@ TcpServer::TcpServer(EventLoop *loop, std::size_t port):
     connections_(),
     buf_(1024*2),
     create_time_(),
-    heartbeat_time_()
+    heartbeat_time_(),
+    error_nums_(0)
 {
     create_time_.now();
     listener_.on_connection([this](Connection::Pointer conn) {
-        if (heartbeat_time_.sec() != 0) {
-            ConnectionHolder::Pointer conn_holder = ConnectionHolder::create(conn);
-            heartbeat_pool_.back().insert(conn_holder);
-            ConnectionHolder::WeakPointer weak(conn_holder);
-            conn->set_context(weak);
-        }
         connections_.insert(conn);
+        init_heartsbeats(conn);
+        conn->set_name("ServerConn");
         conn->on_read( [this](net::Connection::Pointer c) {
             //如果有设定心跳时间，就把他加入队列尾巴。队列头的连接会被shutdown
-            if (heartbeat_time_.sec() != 0) {
-                Any any = c->get_context();
-                assert(any.type() == typeid(ConnectionHolder::WeakPointer));
-                auto weak = any_cast<ConnectionHolder::WeakPointer>(any);
-                ConnectionHolder::Pointer holder = weak.lock();
-                if (holder) {
-                    heartbeat_pool_.back().insert(holder);
-                }
-            }
+            process_heartbeats(c);
             if (message_callback_) {
                 message_callback_(c);
             }
         });
+
+        conn->on_error([this](net::Connection::Pointer c,
+                       const ErrorCode& code) {
+            ++error_nums_;
+            if (error_callback_) {
+                error_callback_(c, code);
+            }
+        });
+
         conn->on_close([this] (net::Connection::Pointer c) {
             if (close_callback_) {
                 close_callback_(c);
             }
-            loop_->add_task([this, c]() {
-                auto iter = connections_.find(c);
-                assert(iter != connections_.end());
-                connections_.erase(iter);
-            });
+            hanlde_close(c);
         });
-        conn->on_error([this](net::Connection::Pointer c,
-                       const ErrorCode& code) {
-            if (error_callback_) {
-                error_callback_(c, code);
-            }
-            c->shutdown();
-        });
-        //lock the connection, then user cannot edit its callbacks
+
+        //lock the connection, then user cannot edit its callbacks easily
         conn->set_lock(true);
         if (connection_callback_) {
             connection_callback_(conn);
         }
     });
 }
-
 
 TcpServer::~TcpServer() {
 
@@ -98,6 +85,14 @@ time_t TcpServer::worked_time() const {
     return now.sec() - create_time_.sec();
 }
 
+std::string TcpServer::info() const {
+    std::string info("TcpServer infomation:");
+    info = info + "[worked_time]: " + utils::to_string(worked_time()) + ". ";
+    info = info + "[port]: " + utils::to_string(port()) + ". ";
+    info = info + "[connections]: " + utils::to_string(size()) + ". ";
+    return info;
+}
+
 void TcpServer::set_heartbeat_time(time_t sec) {
     heartbeat_pool_ = RingList<std::set<
             ConnectionHolder::Pointer>>((std::size_t)sec);
@@ -105,11 +100,42 @@ void TcpServer::set_heartbeat_time(time_t sec) {
     enable_clean_useless_conn();
 }
 
+
+
 void TcpServer::enable_clean_useless_conn() {
     loop_->run_every(Time(1), [this] (TimeEvent::Pointer) {
         heartbeat_pool_.front().clear();
         heartbeat_pool_.next();
     });
+}
+
+void TcpServer::hanlde_close(Connection::Pointer c) {
+    auto iter = connections_.find(c);
+    assert(iter != connections_.end());
+    connections_.erase(iter);
+    loop_->add_task([this, c]() {});
+}
+
+//如果有设定心跳时间，就把他加入队列尾巴。队列头的连接会被shutdown
+void TcpServer::process_heartbeats(Connection::Pointer c) {
+    if (heartbeat_time_.sec() != 0) {
+        Any any = c->get_context();
+        assert(any.type() == typeid(ConnectionHolder::WeakPointer));
+        auto weak = any_cast<ConnectionHolder::WeakPointer>(any);
+        ConnectionHolder::Pointer holder = weak.lock();
+        if (holder) {
+            heartbeat_pool_.back().insert(holder);
+        }
+    }
+}
+
+void TcpServer::init_heartsbeats(Connection::Pointer conn) {
+    if (heartbeat_time_.sec() != 0) {
+        ConnectionHolder::Pointer conn_holder = ConnectionHolder::create(conn);
+        heartbeat_pool_.back().insert(conn_holder);
+        ConnectionHolder::WeakPointer weak(conn_holder);
+        conn->set_context(weak);
+    }
 }
 
 void TcpServer::on_connection(const ConnectionCallback &cb) {
