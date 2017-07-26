@@ -69,4 +69,3 @@ inline void ErrorCode::strerror() {
 
 }//namespace
 #endif // ERROR_CODE
-
