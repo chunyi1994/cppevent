@@ -30,9 +30,9 @@ public:
 
     Any& operator = (const Any& other) {
         holder_=  other.holder_ ? other.holder_->clone() : nullptr;
-        return *this;
+        return *this; 
     }
-
+    
     template<class T>
     Any(const T& value) :
         holder_(new __AnyHolder<T>(value)) { }
