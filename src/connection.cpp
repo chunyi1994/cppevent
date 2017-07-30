@@ -5,6 +5,7 @@
 #include <errno.h>
 #include <string.h>
 #include "logging/logger.h"
+
 namespace net {
 
 int Connection::g_connections = 0;
