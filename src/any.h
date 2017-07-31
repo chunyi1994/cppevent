@@ -15,9 +15,9 @@ template<class T>
 class __AnyHolder : public __AnyPlaceholder{
 public:
     __AnyHolder(const T& value) :  value_(value) {}
-    virtual __AnyPlaceholder* clone() const { return new __AnyHolder<T>(value_); }
-    virtual const std::type_info& type() const { return typeid(T); }
-    virtual ~__AnyHolder() {}
+    virtual __AnyPlaceholder* clone() const { return new __AnyHolder<T>(value_); }  
+    virtual const std::type_info& type() const { return typeid(T); }  
+    virtual ~__AnyHolder() {}    
     T value_;
 };
 
